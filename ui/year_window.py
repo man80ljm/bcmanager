@@ -163,26 +163,26 @@ class YearWindow(QMainWindow):
         """创建新年份"""
         # 禁用按钮，防止重复点击
         self.create_button.setEnabled(False)
-
-        dialog = CreateYearDialog(self)
-        if dialog.exec_():
-            year = dialog.get_year()
-            if not year.isdigit() or len(year) != 4:
-                QMessageBox.warning(self, "输入错误", "请输入有效的4位年份（例如：2025）")
-                return
-            # 检查年份是否已存在
-            if self.db.is_year_exists(year):
-                QMessageBox.warning(self, "年份重复", "请不要输入重复年份！")
-                return
-            # 添加年份卡片
-            self.add_year_card(f"{year}年")
-            # 保存到数据库
-            self.db.add_year(year) # 保存到数据库
-            self.load_years()  # 重新加载并排序年份
-            # QMessageBox.information(self, "成功", f"年份 {year} 已创建并排序！")
-        
-        # 操作完成后重新启用按钮
-        self.create_button.setEnabled(True)
+        try:
+            dialog = CreateYearDialog(self)
+            if dialog.exec_():
+                year = dialog.get_year()
+                if not year.isdigit() or len(year) != 4:
+                    QMessageBox.warning(self, "输入错误", "请输入有效的4位年份（例如：2025）")
+                    return
+                # 检查年份是否已存在
+                if self.db.is_year_exists(year):
+                    QMessageBox.warning(self, "年份重复", "请不要输入重复年份！")
+                    return
+                # 添加年份卡片
+                self.add_year_card(f"{year}年")
+                # 保存到数据库
+                self.db.add_year(year) # 保存到数据库
+                self.load_years()  # 重新加载并排序年份
+                # QMessageBox.information(self, "成功", f"年份 {year} 已创建并排序！")
+        finally:
+        # 无论成功与否，操作完成后重新启用按钮
+            self.create_button.setEnabled(True)
 
     def backup_database(self):
         """备份数据库"""
