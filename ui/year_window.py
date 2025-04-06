@@ -1,0 +1,282 @@
+import sys
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout,QGridLayout, QPushButton, QLabel,
+                             QDialog, QLineEdit, QMessageBox,QScrollArea,
+                             QComboBox, QDialogButtonBox)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+from database.db_manager import DatabaseManager  # 使用相对路径导入
+from utils.file_manager import FileManager  # 导入 FileManager
+
+class YearWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.db = DatabaseManager()  # 初始化数据库管理器
+        self.file_manager = FileManager()  # 初始化 FileManager
+        self.initUI()
+    
+    def initUI(self):
+        # 设置窗口标题和大小
+        self.setWindowTitle('年份管理')
+        self.setFixedSize(1200, 800)
+        # 设置窗口图标
+        self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))  # 使用和界面相同的logo路径
+
+        # 创建中心部件和布局
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+
+        # 按钮宽度
+        button_width = 120
+        # 顶部按钮布局
+        top_button_layout = QHBoxLayout()
+
+        # 创建年份按钮
+        self.create_button = QPushButton("创建年份")
+        self.create_button.setFixedWidth(button_width)
+        self.create_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d3d3d3; 
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+        self.create_button.clicked.connect(self.create_year)
+        top_button_layout.addWidget(self.create_button)
+        
+        # 添加弹簧使按钮靠左
+        top_button_layout.addStretch()
+        main_layout.addLayout(top_button_layout)
+
+        # 创建滚动区域
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("border: none;")
+        
+        # 年份列表容器
+        self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background-color: white;")
+        self.years_layout = QGridLayout(self.scroll_content)
+        self.years_layout.setSpacing(10)
+        
+        # 设置滚动区域的内容
+        scroll.setWidget(self.scroll_content)
+        main_layout.addWidget(scroll)
+
+        # 底部按钮布局
+        bottom_button_layout = QHBoxLayout()
+        
+        # 备份按钮
+        self.backup_button = QPushButton("备份")
+        self.backup_button.setFixedWidth(button_width)
+        self.backup_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d3d3d3; 
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+        self.backup_button.clicked.connect(self.backup_database)  # 绑定备份事件
+
+        # 恢复按钮
+        self.restore_button = QPushButton("恢复")
+        self.restore_button.setFixedWidth(button_width)
+        self.restore_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d3d3d3; 
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+        self.restore_button.clicked.connect(self.restore_database)  # 绑定恢复事件
+        # 添加弹簧使按钮分开
+        bottom_button_layout.addWidget(self.backup_button)
+        bottom_button_layout.addStretch()
+        bottom_button_layout.addWidget(self.restore_button)
+        main_layout.addLayout(bottom_button_layout)
+
+        self.load_years()
+
+    def clear_years_layout(self):
+        """清空当前的年份卡片布局"""
+        # 移除所有部件并销毁
+        for i in reversed(range(self.years_layout.count())):
+            item = self.years_layout.itemAt(i)
+            if item:
+                widget = item.widget()
+                if widget:
+                    self.years_layout.removeWidget(widget)
+                    widget.deleteLater()
+        # 确保布局被重置
+        self.years_layout.update()
+
+    def load_years(self):
+        """从数据库加载年份并按顺序显示"""
+        years = self.db.get_years()
+        print("Years in database:", years)
+        # 清空现有布局
+        self.clear_years_layout()
+        # 添加年份卡片
+        for year in years:
+            self.add_year_card(f"{year}年")
+
+    def add_year_card(self, year):
+        """添加年份卡片"""
+        year_button = QPushButton(year)
+        year_button.setFixedSize(100, 50)
+        year_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0; 
+                border: 1px solid #d3d3d3;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        year_button.clicked.connect(lambda: self.open_annual_window(year))
+        # 计算当前要添加的按钮位置
+        total_items = self.years_layout.count()
+        row = total_items // 5
+        col = total_items % 5
+        # TODO: 点击年份后进入年度详情界面
+        self.years_layout.addWidget(year_button, row, col)
+    
+    def open_annual_window(self, year):
+        print("Attempting to import AnnualWindow...")
+        from .annual_window import AnnualWindow
+        print("Import successful!")
+        self.annual_window = AnnualWindow(year[:-1])  # 去掉“年”字，例如 "2025年" -> "2025"
+        self.annual_window.show()
+    
+    def create_year(self):
+        """创建新年份"""
+        # 禁用按钮，防止重复点击
+        self.create_button.setEnabled(False)
+
+        dialog = CreateYearDialog(self)
+        if dialog.exec_():
+            year = dialog.get_year()
+            if not year.isdigit() or len(year) != 4:
+                QMessageBox.warning(self, "输入错误", "请输入有效的4位年份（例如：2025）")
+                return
+            # 检查年份是否已存在
+            if self.db.is_year_exists(year):
+                QMessageBox.warning(self, "年份重复", "请不要输入重复年份！")
+                return
+            # 添加年份卡片
+            self.add_year_card(f"{year}年")
+            # 保存到数据库
+            self.db.add_year(year) # 保存到数据库
+            self.load_years()  # 重新加载并排序年份
+            # QMessageBox.information(self, "成功", f"年份 {year} 已创建并排序！")
+        
+        # 操作完成后重新启用按钮
+        self.create_button.setEnabled(True)
+
+    def backup_database(self):
+        """备份数据库"""
+        self.backup_button.setEnabled(False)
+        success, result = self.file_manager.backup_database()
+        if success:
+            QMessageBox.information(self, "备份成功", f"数据库已备份到：\n{result}")
+        else:
+            QMessageBox.warning(self, "备份失败", f"备份失败：\n{result}")
+        self.backup_button.setEnabled(True)
+
+    def restore_database(self):
+        """恢复数据库"""
+        self.restore_button.setEnabled(False)
+
+        # 获取备份文件列表
+        backup_files = self.file_manager.get_backup_files()
+        if not backup_files:
+            QMessageBox.warning(self, "无备份文件", "db_backup 文件夹中没有可用的备份文件！")
+            self.restore_button.setEnabled(True)
+            return
+
+        # 弹出选择备份文件的对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle("选择备份文件")
+        dialog.setFixedSize(400, 200)
+
+        layout = QVBoxLayout()
+        label = QLabel("请选择要恢复的备份文件：")
+        layout.addWidget(label)
+
+        combo = QComboBox()
+        combo.addItems(backup_files)
+        layout.addWidget(combo)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec_():
+            selected_file = combo.currentText()
+            # 二次确认
+            reply = QMessageBox.question(
+                self, "确认恢复",
+                f"确定要从 {selected_file} 恢复数据库吗？\n这将覆盖当前数据库！",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                success, message = self.file_manager.restore_database(selected_file)
+                if success:
+                    QMessageBox.information(self, "恢复成功", message)
+                    # 重新加载年份，因为数据库已更改
+                    self.load_years()
+                else:
+                    QMessageBox.warning(self, "恢复失败", f"恢复失败：\n{message}")
+
+        self.restore_button.setEnabled(True)
+        
+class CreateYearDialog(QDialog):
+    """创建年份的对话框"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("创建新年份")
+        self.setFixedSize(600, 300)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)  # 去除问号按钮
+        layout = QVBoxLayout()
+
+        # 年份输入框
+        self.year_input = QLineEdit()
+        self.year_input.setPlaceholderText("请输入年份（例如：2025）")
+        layout.addWidget(self.year_input)
+
+        # 确认和取消按钮
+        button_layout = QHBoxLayout()
+        confirm_button = QPushButton("确定")
+        confirm_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("取消")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(confirm_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+    def get_year(self):
+        """获取用户输入的年份"""
+        return self.year_input.text().strip()
+
+# 测试代码
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = YearWindow()
+    window.show()
+    sys.exit(app.exec_())
