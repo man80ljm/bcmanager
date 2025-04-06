@@ -77,6 +77,74 @@ class DatabaseManager:
         exists = cursor.fetchone() is not None
         conn.close()
         return exists
+    
+    def add_project(self, name, year):
+        """添加新项目"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
+            year_id = cursor.fetchone()[0]
+            cursor.execute("INSERT INTO projects (name, year_id, created_at) VALUES (?, ?, ?)", 
+                         (name, year_id, created_at))
+            project_id = cursor.lastrowid
+            conn.commit()
+            return True, project_id
+        except sqlite3.IntegrityError:
+            return False, None
+        finally:
+            conn.close()
+
+    def add_transaction(self, project_id, amount, trans_type, payment_method, month, year):
+        """添加收支记录"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
+            year_id = cursor.fetchone()[0]
+            cursor.execute("""
+                INSERT INTO transactions (project_id, amount, type, payment_method, month, year_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (project_id, amount, trans_type, payment_method, month, year_id, created_at))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+        finally:
+            conn.close()
+
+    def get_monthly_transactions(self, year, month):
+        """获取某月的所有收支记录"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.id, p.name, t.amount, t.type, t.payment_method, t.stage
+            FROM transactions t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.year_id = (SELECT id FROM years WHERE year = ?) AND t.month = ?
+        """, (year, month))
+        transactions = cursor.fetchall()
+        conn.close()
+        return transactions
+
+    def get_monthly_summary(self, year, month):
+        """获取某月汇总信息"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                SUM(CASE WHEN type = '收入' THEN amount ELSE 0 END) as total_income,
+                SUM(CASE WHEN type = '支出' THEN amount ELSE 0 END) as total_expense
+            FROM transactions
+            WHERE year_id = (SELECT id FROM years WHERE year = ?) AND month = ?
+        """, (year, month))
+        result = cursor.fetchone()
+        conn.close()
+        total_income = result[0] or 0
+        total_expense = result[1] or 0
+        return total_income, total_expense, total_income - total_expense
 
 # 测试代码
 if __name__ == '__main__':

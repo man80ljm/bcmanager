@@ -17,3 +17,36 @@ CREATE TABLE IF NOT EXISTS years (
     year TEXT NOT NULL UNIQUE,  -- 年份值（例如 '2025'），唯一
     created_at TEXT NOT NULL    -- 创建日期（例如 '2025-04-06'）
 );
+
+-- 项目表
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    year_id INTEGER,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (year_id) REFERENCES years(id)
+);
+
+-- 创建收支记录表
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER,
+    amount REAL NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('收入', '支出')),
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('微信', '支付宝', '对公账户', '对私账户', '现金')),
+    stage TEXT,
+    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year_id INTEGER,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (year_id) REFERENCES years(id)
+);
+
+-- 备注表
+CREATE TABLE IF NOT EXISTS remarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER,
+    content TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+);

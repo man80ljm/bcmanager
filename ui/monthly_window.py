@@ -1,0 +1,146 @@
+from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
+                             QMenu, QInputDialog, QComboBox, QMessageBox,QHBoxLayout)
+from PyQt5.QtGui import QIcon
+from database.db_manager import DatabaseManager
+from utils.file_manager import FileManager
+import os
+
+class MonthlyWindow(QMainWindow):
+    def __init__(self, year, month):
+        super().__init__()
+        self.year = year
+        self.month = month
+        self.db = DatabaseManager()
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(f'{self.year}年{self.month}月详情')
+        self.setFixedSize(1000, 500)
+        self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))  # 设置窗口图标
+
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+
+        # 表格
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["项目名称", "金额", "类型", "支付方式", "备注", "修改"])
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)  # 禁用编辑
+        layout.addWidget(self.table)
+
+        # 功能按钮
+        button_layout = QHBoxLayout()
+        create_button = QPushButton("创建")
+        create_button.clicked.connect(self.show_create_dialog)  # 修复：连接信号
+        filter_button = QPushButton("筛选")
+        button_layout.addWidget(create_button)
+        button_layout.addWidget(filter_button)
+        layout.addLayout(button_layout)
+
+        # 汇总信息
+        self.summary_label = QLabel()
+        layout.addWidget(self.summary_label)
+
+        self.load_transactions()
+
+    def load_transactions(self):
+        transactions = self.db.get_monthly_transactions(self.year, self.month)
+        self.table.setRowCount(len(transactions))
+        for row, (id, name, amount, trans_type, payment_method, stage) in enumerate(transactions):
+            display_name = f"{name}（{stage}）" if stage else name
+            self.table.setItem(row, 0, QTableWidgetItem(display_name))
+            self.table.setItem(row, 1, QTableWidgetItem(str(amount)))
+            self.table.setItem(row, 2, QTableWidgetItem(trans_type))
+            self.table.setItem(row, 3, QTableWidgetItem(payment_method))
+            remark_button = QPushButton("备注")
+            self.table.setCellWidget(row, 4, remark_button)
+            edit_button = QPushButton("修改")
+            edit_button.clicked.connect(lambda checked, r=row: self.edit_transaction(r))  # 添加修改逻辑
+            self.table.setCellWidget(row, 5, edit_button)
+
+        total_income, total_expense, balance = self.db.get_monthly_summary(self.year, self.month)
+        self.summary_label.setText(f"总收入: {total_income} | 总支出: {total_expense} | 结余: {balance}")
+
+    def edit_transaction(self, row):
+        # 占位方法，显示修改对话框
+        QMessageBox.information(self, "提示", f"修改第 {row + 1} 行记录功能待实现！")
+
+    def show_create_dialog(self):
+        """显示创建方式选择对话框"""
+        choice, ok = QInputDialog.getItem(self, "创建收支记录", "请选择创建方式：", 
+                                         ["创建新项目", "选择已有项目"], 0, False)
+        if not ok:
+            print("取消创建选择")
+            return
+        if choice == "创建新项目":
+            self.create_new_project_transaction()
+        elif choice == "选择已有项目":
+            self.create_existing_project_transaction()  # 待实现
+
+    def create_new_project_transaction(self):
+        # 步骤 1: 输入项目名称
+        project_name, ok = QInputDialog.getText(self, "创建新项目", "请输入项目名称：")
+        if not ok or not project_name:
+            print("取消输入项目名称")
+            return
+
+        # 步骤 2: 输入金额（修复参数名）
+        amount, ok = QInputDialog.getDouble(self, "输入金额", "请输入金额：", value=0.0, min=0.01, max=9999999.99, decimals=2)
+        if not ok:
+            print("取消输入金额")
+            return
+
+        # 步骤 3: 选择收支类型
+        trans_type, ok = QInputDialog.getItem(self, "选择类型", "请选择收支类型：", ["收入", "支出"], 0, False)
+        if not ok:
+            print("取消选择收支类型")
+            return
+
+        # 步骤 4: 选择支付方式
+        payment_method, ok = QInputDialog.getItem(self, "选择支付方式", "请选择支付方式：",
+                                                ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
+        if not ok:
+            print("取消选择支付方式")
+            return
+
+        # 步骤 5: 确认对话框
+        confirm_msg = f"项目名称: {project_name}\n金额: {amount}\n类型: {trans_type}\n支付方式: {payment_method}"
+        reply = QMessageBox.question(self, "确认创建", confirm_msg, QMessageBox.Ok | QMessageBox.Cancel)
+        if reply != QMessageBox.Ok:
+            print("取消确认")
+            return
+
+        # 步骤 6: 保存到数据库
+        success, project_id = self.db.add_project(project_name, self.year)
+        if success:
+            print(f"项目 {project_name} 创建成功，ID: {project_id}")
+            success = self.db.add_transaction(project_id, amount, trans_type, payment_method, self.month, self.year)
+            if success:
+                # 步骤 7: 创建文件夹
+                base_path = f"统计目录/{self.year}/{self.month}/{project_name}"
+                try:
+                    os.makedirs(os.path.join(base_path, "合同"), exist_ok=True)
+                    os.makedirs(os.path.join(base_path, "交付文件"), exist_ok=True)
+                    os.makedirs(os.path.join(base_path, "相关资料"), exist_ok=True)
+                    print(f"文件夹创建成功: {base_path}")
+                    QMessageBox.information(self, "成功", "收支记录创建成功！")
+                    self.load_transactions()  # 刷新表格
+                except Exception as e:
+                    QMessageBox.warning(self, "失败", f"创建文件夹失败: {str(e)}")
+            else:
+                QMessageBox.warning(self, "失败", "保存收支记录失败！")
+        else:
+            QMessageBox.warning(self, "失败", "创建项目失败！请确保年份已存在。")
+
+    def create_existing_project_transaction(self):
+        # 占位方法，稍后实现
+        QMessageBox.information(self, "提示", "选择已有项目功能待实现！")
+
+if __name__ == '__main__':
+    from PyQt5.QtWidgets import QApplication
+    import sys
+    app = QApplication(sys.argv)
+    window = MonthlyWindow("2025", 4)
+    window.show()
+    sys.exit(app.exec_())
