@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
     year_id INTEGER,
     created_at TEXT NOT NULL,
+    status TEXT DEFAULT '未结项' CHECK (status IN ('未结项', '已结项')),  -- 新增状态字段
     FOREIGN KEY (project_id) REFERENCES projects(id),  -- 修正：引用 projects 表
     FOREIGN KEY (year_id) REFERENCES years(id)        -- 添加逗号分隔
 );

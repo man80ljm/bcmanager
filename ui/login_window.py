@@ -29,11 +29,11 @@ class LoginWindow(QWidget):
         logo_layout = QVBoxLayout()  # 垂直布局用于 logo
         logo_label = QLabel()
         logo_pixmap = QPixmap(r'D:\bcmanager\logo.png')  # 确保提供正确的路径
-        logo_label.setPixmap(logo_pixmap.scaled(170, 170, Qt.KeepAspectRatio))  # 调整图像大小
+        logo_label.setPixmap(logo_pixmap.scaled(147, 147, Qt.KeepAspectRatio))  # 调整图像大小
         logo_label.setAlignment(Qt.AlignTop)
 
         # 添加一个固定大小的 spacer 在顶部
-        top_spacer = QSpacerItem(0, 25, QSizePolicy.Minimum, QSizePolicy.Fixed)  # 20 表示离顶部的距离
+        top_spacer = QSpacerItem(0, 30, QSizePolicy.Minimum, QSizePolicy.Fixed)  # 20 表示离顶部的距离
         logo_layout.addItem(top_spacer)
 
         # 添加 logo
@@ -51,6 +51,7 @@ class LoginWindow(QWidget):
         # 用户名输入
         username_layout = QHBoxLayout()
         username_label = QLabel('用户名')
+        username_label.setStyleSheet("font-size: 20px;")  # 设置用户名字体大小为 20px
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText('请输入用户名')
         username_layout.addWidget(username_label)
@@ -64,6 +65,7 @@ class LoginWindow(QWidget):
         # 密码输入
         password_layout = QHBoxLayout()
         password_label = QLabel('密  码')
+        password_label.setStyleSheet("font-size: 20px;")  # 设置密码字体大小为 20px
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)  # 密码模式，输入显示为星号
         self.password_input.setPlaceholderText('请输入密码')
@@ -81,10 +83,10 @@ class LoginWindow(QWidget):
 
         # 登录按钮
         login_button = QPushButton('登录')
-        login_button.setStyleSheet("background-color: #d3d3d3; padding: 2px;")  # 设置按钮样式，与图片一致
+        login_button.setStyleSheet("background-color: #d3d3d3; padding: 2px;font-size: 20px;")  # 设置按钮样式，与图片一致
         login_button.clicked.connect(self.handle_login)  # 绑定登录按钮的点击事件
         input_layout.addWidget(login_button, alignment=Qt.AlignRight)
-        login_button.setFixedSize(280, 40)  # 设置按钮的宽度和高度
+        login_button.setFixedSize(302, 40)  # 设置按钮的宽度和高度
 
         # 将输入区域添加到主布局
         main_layout.addLayout(input_layout, 2)  # 占用 2 份空间

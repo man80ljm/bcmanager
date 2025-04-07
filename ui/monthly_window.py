@@ -1,10 +1,14 @@
 from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
                              QMenu, QInputDialog, QComboBox, QMessageBox,QHBoxLayout)
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon,QColor
+from PyQt5.QtCore import Qt  # 添加这一行，导入 Qt
 from database.db_manager import DatabaseManager
 from utils.file_manager import FileManager
 from ui.dialogs import EditTransactionDialog
+from PyQt5.QtWidgets import QMenu, QAction
+import logging
 import os
+from datetime import datetime
 
 class MonthlyWindow(QMainWindow):
     def __init__(self, year, month):
@@ -17,7 +21,7 @@ class MonthlyWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle(f'{self.year}年{self.month}月详情')
-        self.setFixedSize(1300, 850)
+        self.setMinimumSize(1300, 550)
         self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))  # 设置窗口图标
 
         central_widget = QWidget()
@@ -26,11 +30,10 @@ class MonthlyWindow(QMainWindow):
 
         # 表格
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["项目名称", "金额", "类型", "支付方式", "备注", "修改"])
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels(["创建时间", "项目名称", "金额", "类型", "支付方式", "备注", "修改", "删除"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)  # 禁用编辑
-        layout.addWidget(self.table)
-
+        
         # 功能按钮
         button_layout = QHBoxLayout()
         create_button = QPushButton("创建")
@@ -44,49 +47,197 @@ class MonthlyWindow(QMainWindow):
         self.summary_label = QLabel()
         layout.addWidget(self.summary_label)
 
+        # 先加载数据
         self.load_transactions()
 
-    def load_transactions(self):
-        transactions = self.db.get_monthly_transactions(self.year, self.month)
-        self.table.setRowCount(len(transactions))
-        for row, (id, name, amount, trans_type, payment_method, stage) in enumerate(transactions):
-            display_name = f"{name}（{stage}）" if stage else name
-            self.table.setItem(row, 0, QTableWidgetItem(display_name))
-            self.table.setItem(row, 1, QTableWidgetItem(str(amount)))
-            self.table.setItem(row, 2, QTableWidgetItem(trans_type))
-            self.table.setItem(row, 3, QTableWidgetItem(payment_method))
-            remark_button = QPushButton("备注")
-            self.table.setCellWidget(row, 4, remark_button)
-            edit_button = QPushButton("修改")
-            edit_button.clicked.connect(lambda checked, r=row: self.edit_transaction(r))  # 添加修改逻辑
-            self.table.setCellWidget(row, 5, edit_button)
+        # 再设置上下文菜单
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.show_context_menu)
+        layout.addWidget(self.table)
 
-        total_income, total_expense, balance = self.db.get_monthly_summary(self.year, self.month)
-        self.summary_label.setText(f"总收入: {total_income} | 总支出: {total_expense} | 结余: {balance}")
+
+    def load_transactions(self):
+        try:
+            transactions = self.db.get_monthly_transactions(self.year, self.month)
+            logging.info(f"Loaded {len(transactions)} transactions for {self.year}-{self.month}")
+            for t in transactions:
+                logging.info(f"Transaction: {t}")  # 打印每条交易记录
+            self.table.setRowCount(len(transactions))
+            for row, (id, created_at, name, amount, trans_type, payment_method, stage, status) in enumerate(transactions):
+                created_at_dt = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+                formatted_time = created_at_dt.strftime("%Y年%m月%d日%H时%M分")
+                self.table.setItem(row, 0, QTableWidgetItem(formatted_time))
+                display_name = f"{name}（{stage}）" if stage else name
+                name_item = QTableWidgetItem(display_name)
+                if trans_type == "收入" and status == "已结项":
+                    name_item.setBackground(QColor("lightgreen"))
+                self.table.setItem(row, 1, name_item)
+                self.table.setItem(row, 2, QTableWidgetItem(str(amount)))
+                self.table.setItem(row, 3, QTableWidgetItem(trans_type))
+                self.table.setItem(row, 4, QTableWidgetItem(payment_method))
+                remark_button = QPushButton("备注")
+                self.table.setCellWidget(row, 5, remark_button)
+                edit_button = QPushButton("修改")
+                edit_button.clicked.connect(lambda checked, r=row: self.edit_transaction(r))
+                self.table.setCellWidget(row, 6, edit_button)
+                delete_button = QPushButton("删除")
+                delete_button.clicked.connect(lambda checked, r=row: self.delete_transaction(r))
+                self.table.setCellWidget(row, 7, delete_button)
+
+            total_income, total_expense, balance = self.db.get_monthly_summary(self.year, self.month)
+            self.summary_label.setText(f"总收入: {total_income} | 总支出: {total_expense} | 结余: {balance}")
+        except Exception as e:
+            logging.error(f"Failed to load transactions for {self.year}-{self.month}: {str(e)}")
+            QMessageBox.warning(self, "错误", f"加载交易记录失败: {str(e)}")
+
+    def show_context_menu(self, pos):
+        """显示右键菜单"""
+        logging.info(f"Right-click detected at position: {pos}")
+        # 获取点击的单元格
+        item = self.table.itemAt(pos)
+        if not item:
+            return
+
+        row = item.row()
+        col = item.column()
+        logging.info(f"Clicked on row {row}, column {col}")
+        # 只在“项目名称”列（第 1 列）且类型为“收入”时显示菜单
+        if col != 1:
+            return
+
+        transaction = self.db.get_monthly_transactions(self.year, self.month)[row]
+        trans_type = transaction[4]  # 类型
+        logging.info(f"Transaction type: {trans_type}")
+        if trans_type != "收入":
+            logging.info("Transaction type is not '收入'")
+            return
+
+        # 创建上下文菜单
+        menu = QMenu(self)
+        action_unsettled = QAction("未结项", self)
+        action_settled = QAction("已结项", self)
+        menu.addAction(action_unsettled)
+        menu.addAction(action_settled)
+
+        # 绑定动作
+        action_unsettled.triggered.connect(lambda: self.set_transaction_status(row, "未结项"))
+        action_settled.triggered.connect(lambda: self.set_transaction_status(row, "已结项"))
+
+        # 显示菜单
+        logging.info("Showing context menu")
+        menu.exec_(self.table.viewport().mapToGlobal(pos))
+
+    def set_transaction_status(self, row, status):
+        """设置交易状态并更新显示"""
+        transaction = self.db.get_monthly_transactions(self.year, self.month)[row]
+        transaction_id = transaction[0]
+        success = self.db.update_transaction_status(transaction_id, status)
+        if success:
+            # 更新单元格背景色
+            name_item = self.table.item(row, 1)
+            if status == "已结项":
+                name_item.setBackground(QColor("lightgreen"))
+            else:
+                name_item.setBackground(QColor("white"))  # 恢复默认背景
+            QMessageBox.information(self, "成功", f"状态已更新为: {status}")
+        else:
+            QMessageBox.warning(self, "失败", "状态更新失败！")
 
     def edit_transaction(self, row):
-        """修改指定行的收支记录"""
-        # 获取当前行的记录
         transaction = self.db.get_monthly_transactions(self.year, self.month)[row]
-        # 弹出修改对话框
-        dialog = EditTransactionDialog(transaction, self)
+        id, created_at, name, amount, trans_type, payment_method, stage, status = transaction
+        old_project_name = name
+        dialog = EditTransactionDialog(transaction, self.db, parent=self)  # 传递 self.db
         if dialog.exec_():
-            # 获取更新后的数据
             updated_data = dialog.get_updated_data()
-            # 更新数据库
             success = self.db.update_transaction(
                 updated_data["id"],
                 updated_data["amount"],
                 updated_data["type"],
-                updated_data["payment_method"],
-                updated_data["stage"]
+                updated_data["payment_method"]
             )
+            if success and old_project_name != updated_data["name"]:
+                conn = self.db.connect()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT project_id, p.year_id, p.month 
+                    FROM transactions t 
+                    JOIN projects p ON t.project_id = p.id 
+                    WHERE t.id = ?
+                """, (updated_data["id"],))
+                project_id, year_id, project_month = cursor.fetchone()
+                cursor.execute("SELECT year FROM years WHERE id = ?", (year_id,))
+                project_year = cursor.fetchone()[0]
+                conn.close()
+
+                success = self.db.update_project_name(project_id, updated_data["name"])
+                if success:
+                    rename_success, result = self.file_manager.rename_project_folder(
+                        project_year, project_month, old_project_name, updated_data["name"]
+                    )
+                    if not rename_success:
+                        QMessageBox.warning(self, "警告", f"项目文件夹重命名失败: {result}")
+                    else:
+                        update_success, update_result = self.file_manager.update_shortcuts(
+                            old_project_name, updated_data["name"], project_year, project_month
+                        )
+                        if not update_success:
+                            QMessageBox.warning(self, "警告", f"快捷方式更新失败: {update_result}")
             if success:
                 QMessageBox.information(self, "成功", "收支记录修改成功！")
-                # 刷新表格
                 self.load_transactions()
             else:
                 QMessageBox.warning(self, "失败", "收支记录修改失败！")
+
+    def delete_transaction(self, row):
+        """删除指定行的收支记录"""
+        transaction = self.db.get_monthly_transactions(self.year, self.month)[row]
+        id, created_at, name, amount, trans_type, payment_method, stage, status = transaction
+        transaction_id = id
+        project_name = name
+        # 弹出确认对话框
+        reply = QMessageBox.question(
+            self, "确认删除",
+            f"确定要删除项目 '{project_name}' 的这条收支记录吗？",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            # 检查该项目是否是该月份的唯一项目
+            conn = self.db.connect()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM transactions 
+                WHERE year_id = (SELECT id FROM years WHERE year = ?) AND month = ?
+            """, (self.year, self.month))
+            total_transactions = cursor.fetchone()[0]
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM transactions 
+                WHERE project_id = (SELECT project_id FROM transactions WHERE id = ?) 
+                AND year_id = (SELECT id FROM years WHERE year = ?) 
+                AND month = ?
+            """, (transaction_id, self.year, self.month))
+            project_transactions = cursor.fetchone()[0]
+            conn.close()
+
+            # 如果该项目在该月份只有一条记录，则认为是唯一项目
+            is_only_project_in_month = (project_transactions == 1 and total_transactions == 1)
+
+            # 删除数据库记录
+            success = self.db.delete_transaction(transaction_id)
+            if success:
+                # 删除项目文件夹，并根据条件删除月份文件夹
+                delete_success, result = self.file_manager.delete_project_folder(
+                    self.year, self.month, project_name, is_only_project_in_month
+                )
+                if not delete_success:
+                    QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
+                QMessageBox.information(self, "成功", "收支记录删除成功！")
+                # 刷新表格
+                self.load_transactions()
+            else:
+                QMessageBox.warning(self, "失败", "收支记录删除失败！")
 
     def show_create_dialog(self):
         """显示创建方式选择对话框"""
@@ -101,6 +252,19 @@ class MonthlyWindow(QMainWindow):
             self.create_existing_project_transaction()  
 
     def create_new_project_transaction(self):
+        # 检查目标月份是否晚于当前时间
+        from datetime import datetime
+        current_date = datetime.now()
+        current_year = current_date.year
+        current_month = current_date.month
+
+        transaction_year = int(self.year)
+        transaction_month = int(self.month)
+
+        if transaction_year > current_year or (transaction_year == current_year and transaction_month > current_month):
+            QMessageBox.warning(self, "错误", f"不能为未来的月份创建项目！当前日期：{current_year}年{current_month}月")
+            return
+        
         # 步骤 1: 输入项目名称
         project_name, ok = QInputDialog.getText(self, "创建新项目", "请输入项目名称：")
         if not ok or not project_name:
@@ -172,7 +336,6 @@ class MonthlyWindow(QMainWindow):
             return
         
         all_years = self.db.get_years()
-        current_year = int(self.year)
         years = [year for year in all_years if int(year) <= current_year]
         if not years:
             QMessageBox.warning(self, "错误", "数据库中没有年份记录，请先创建年份！")
@@ -182,12 +345,13 @@ class MonthlyWindow(QMainWindow):
             print("取消选择年份")
             return
 
-        # 步骤 2: 选择项目
+        # 步骤 2: 选择项目（确保显示最新名称）
         projects = self.db.get_projects_by_year(selected_year)
-        print(f"Projects for year {selected_year}: {projects}")
-
+        
+        # 定义当前窗口的月份
+        current_window_month = int(self.month)  # 提前定义，避免 NameError
+        
         # 过滤掉创建月份晚于当前窗口月份的项目
-        current_window_month = int(self.month)
         filtered_projects = [p for p in projects if p[2] is not None and p[2] <= current_window_month]
         print(f"Filtered projects (month <= {current_window_month}): {filtered_projects}")
 
@@ -196,9 +360,9 @@ class MonthlyWindow(QMainWindow):
             return
         
         # 显示项目名称时包含创建月份
-        project_names = [p[1] for p in projects]
-        project_ids = {p[1]: p[0] for p in projects}
-        project_months = {p[1]: p[2] if len(p) > 2 else None for p in projects}  # 映射项目名称到创建月份
+        project_names = [p[1] for p in filtered_projects]  # 只使用过滤后的项目
+        project_ids = {p[1]: p[0] for p in filtered_projects}
+        project_months = {p[1]: p[2] for p in filtered_projects}  # 映射项目名称到创建月份
         project_name, ok = QInputDialog.getItem(self, "选择项目", "请选择已有项目：", project_names, 0, False)
         if not ok:
             print("取消选择项目")
@@ -259,6 +423,9 @@ class MonthlyWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "失败", "保存收支记录失败！")
 
+    def closeEvent(self, event):
+        self.deleteLater()  # 确保窗口被销毁，触发 destroyed 信号
+        super().closeEvent(event)
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication

@@ -40,6 +40,7 @@ class YearWindow(QMainWindow):
                 background-color: #d3d3d3; 
                 padding: 5px;
                 border-radius: 3px;
+                font-size: 20px;
             }
             QPushButton:hover {
                 background-color: #c0c0c0;
@@ -78,6 +79,7 @@ class YearWindow(QMainWindow):
                 background-color: #d3d3d3; 
                 padding: 5px;
                 border-radius: 3px;
+                font-size: 20px;
             }
             QPushButton:hover {
                 background-color: #c0c0c0;
@@ -93,6 +95,7 @@ class YearWindow(QMainWindow):
                 background-color: #d3d3d3; 
                 padding: 5px;
                 border-radius: 3px;
+                font-size: 20px;
             }
             QPushButton:hover {
                 background-color: #c0c0c0;
@@ -139,6 +142,7 @@ class YearWindow(QMainWindow):
                 background-color: #f0f0f0; 
                 border: 1px solid #d3d3d3;
                 border-radius: 5px;
+                font-size: 20px;
             }
             QPushButton:hover {
                 background-color: #e0e0e0;

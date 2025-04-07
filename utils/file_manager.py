@@ -62,7 +62,7 @@ class FileManager:
         original_path = os.path.join(self.base_dir, f"{original_year}年", f"{str(original_month).zfill(2)}月", project_name)
         shortcut_name = f"{project_name}（{stage}）.lnk"
         shortcut_path = os.path.join(base_path, shortcut_name)
-
+        logging.info(f"创建快捷方式: project_name={project_name}, original_path={original_path}")
         try:
             # 确保快捷方式所在目录存在
             os.makedirs(base_path, exist_ok=True)
@@ -105,4 +105,86 @@ class FileManager:
         except Exception as e:
             logging.error(f"创建文件夹失败: {str(e)}")
             print(f"Failed to create project folder: {str(e)}")  # 添加日志
+            return False, str(e)
+        
+    def rename_project_folder(self, year, month, old_project_name, new_project_name):
+        """重命名项目文件夹"""
+        old_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月", old_project_name)
+        new_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月", new_project_name)
+        try:
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
+                logging.info(f"项目文件夹重命名成功: {old_path} -> {new_path}")
+                return True, new_path
+            else:
+                logging.warning(f"项目文件夹不存在: {old_path}")
+                return False, f"项目文件夹不存在: {old_path}"
+        except Exception as e:
+            logging.error(f"重命名项目文件夹失败: {str(e)}")
+            return False, str(e)
+
+    def delete_project_folder(self, year, month, project_name, is_only_project_in_month):
+        """删除项目文件夹，并根据条件删除月份文件夹"""
+        project_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月", project_name)
+        month_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月")
+        try:
+            # 删除项目文件夹
+            if os.path.exists(project_path):
+                shutil.rmtree(project_path)
+                logging.info(f"项目文件夹删除成功: {project_path}")
+            else:
+                logging.warning(f"项目文件夹不存在: {project_path}")
+
+            # 如果是该月份的唯一项目，删除月份文件夹
+            if is_only_project_in_month and os.path.exists(month_path):
+                # 检查月份文件夹是否为空（除了系统文件）
+                remaining_items = [item for item in os.listdir(month_path) if not item.startswith('.')]
+                if not remaining_items:  # 月份文件夹为空
+                    shutil.rmtree(month_path)
+                    logging.info(f"月份文件夹删除成功: {month_path}")
+                else:
+                    logging.info(f"月份文件夹不为空，保留: {month_path}")
+            return True, "删除成功"
+        except Exception as e:
+            logging.error(f"删除项目文件夹失败: {str(e)}")
+            return False, str(e)
+        
+    def update_shortcuts(self, old_project_name, new_project_name, project_year, project_month):
+        """更新所有指向该项目的快捷方式"""
+        try:
+            # 遍历所有年份和月份，查找包含该项目名称的快捷方式
+            base_year_path = os.path.join(self.base_dir, f"{project_year}年")
+            if not os.path.exists(base_year_path):
+                return True, "无快捷方式需要更新"
+
+            for month in range(1, 13):
+                month_path = os.path.join(base_year_path, f"{str(month).zfill(2)}月")
+                if not os.path.exists(month_path):
+                    continue
+
+                for item in os.listdir(month_path):
+                    if item.startswith(old_project_name) and item.endswith(".lnk"):
+                        # 提取阶段信息（例如 "（微商）.lnk"）
+                        stage_part = item[len(old_project_name):]
+                        new_shortcut_name = f"{new_project_name}{stage_part}"
+                        old_shortcut_path = os.path.join(month_path, item)
+                        new_shortcut_path = os.path.join(month_path, new_shortcut_name)
+                        # 重命名快捷方式
+                        os.rename(old_shortcut_path, new_shortcut_path)
+                        logging.info(f"快捷方式重命名成功: {old_shortcut_path} -> {new_shortcut_path}")
+
+                        # 更新快捷方式的目标路径
+                        if os.name == 'nt':  # Windows
+                            import win32com.client
+                            shell = win32com.client.Dispatch("WScript.Shell")
+                            shortcut = shell.CreateShortCut(new_shortcut_path)
+                            new_target_path = os.path.join(self.base_dir, f"{project_year}年", f"{str(project_month).zfill(2)}月", new_project_name)
+                            shortcut.TargetPath = new_target_path
+                            shortcut.WorkingDirectory = os.path.dirname(new_target_path)
+                            shortcut.save()
+                            logging.info(f"快捷方式目标路径更新成功: {new_shortcut_path} -> {new_target_path}")
+
+            return True, "快捷方式更新成功"
+        except Exception as e:
+            logging.error(f"更新快捷方式失败: {str(e)}")
             return False, str(e)
