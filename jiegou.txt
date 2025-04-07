@@ -2,6 +2,7 @@ project_accounting/
 │
 ├── main.py                 # 程序入口，启动应用
 ├── ui/
+│   ├── _init_.py
 │   ├── login_window.py     # 登录界面
 │   ├── year_window.py      # 年份管理界面
 │   ├── annual_window.py    # 年度详情界面
