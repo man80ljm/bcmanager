@@ -105,3 +105,5 @@ class EditTransactionDialog(QDialog):
             "type": trans_type,
             "payment_method": payment_method
         }
+
+    #新功能待实现
