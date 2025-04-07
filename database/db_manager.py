@@ -10,21 +10,68 @@ class DatabaseManager:
         self.init_database()
 
     def init_database(self):
-        """初始化数据库，创建表结构"""
-        # 检查数据库文件是否存在，不存在则创建
+        """初始化数据库，创建表结构，并处理表结构升级"""
         if not os.path.exists(self.db_path):
             print(f"创建数据库文件：{self.db_path}")
-        
-        # 连接数据库
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # 读取 schema.sql 文件并执行
+        # 检查 projects 表是否存在
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
+        table_exists = cursor.fetchone() is not None
+
+        # 如果 projects 表存在，检查是否有 month 列
+        if table_exists:
+            cursor.execute("PRAGMA table_info(projects)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'month' not in columns:
+                print("projects 表缺少 month 列，正在升级表结构...")
+                cursor.execute("""
+                    CREATE TABLE projects_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        year_id INTEGER,
+                        month INTEGER CHECK (month BETWEEN 1 AND 12),
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY (year_id) REFERENCES years(id)
+                    )
+                """)
+                cursor.execute("""
+                    INSERT INTO projects_temp (id, name, year_id, created_at)
+                    SELECT id, name, year_id, created_at FROM projects
+                """)
+                cursor.execute("DROP TABLE projects")
+                cursor.execute("ALTER TABLE projects_temp RENAME TO projects")
+                print("projects 表结构升级完成！")
+
+        # 读取 schema.sql 文件
         with open("database/schema.sql", "r", encoding="utf-8") as f:
-            schema = f.read()
+            schema_lines = f.read().splitlines()
+
+        # 如果 projects 表存在，过滤掉整个 projects 表定义
+        if table_exists:
+            filtered_lines = []
+            skip = False
+            for line in schema_lines:
+                # 如果遇到 CREATE TABLE IF NOT EXISTS projects，開始跳過
+                if line.strip().startswith("CREATE TABLE IF NOT EXISTS projects"):
+                    skip = True
+                    continue
+                # 如果遇到分號，表示表定義結束，停止跳過
+                if skip and line.strip().endswith(";"):
+                    skip = False
+                    continue
+                # 如果不在跳過模式，添加該行
+                if not skip:
+                    filtered_lines.append(line)
+            schema = "\n".join(filtered_lines)
+        else:
+            schema = "\n".join(schema_lines)
+
+        # 執行 schema
         cursor.executescript(schema)
 
-        # 提交更改并关闭连接
         conn.commit()
         conn.close()
 
@@ -78,16 +125,21 @@ class DatabaseManager:
         conn.close()
         return exists
     
-    def add_project(self, name, year):
+    def add_project(self, name, year, month):
         """添加新项目"""
+        if month is None or not (1 <= month <= 12):
+            raise ValueError("月份必须在 1-12 之间")
         conn = self.connect()
         cursor = conn.cursor()
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
             cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
-            year_id = cursor.fetchone()[0]
-            cursor.execute("INSERT INTO projects (name, year_id, created_at) VALUES (?, ?, ?)", 
-                         (name, year_id, created_at))
+            year_id = cursor.fetchone()
+            if not year_id:
+                raise ValueError(f"年份 {year} 不存在")
+            year_id = year_id[0]
+            cursor.execute("INSERT INTO projects (name, year_id, month, created_at) VALUES (?, ?, ?, ?)", 
+                        (name, year_id, month, created_at))
             project_id = cursor.lastrowid
             conn.commit()
             return True, project_id
@@ -101,11 +153,12 @@ class DatabaseManager:
         conn = self.connect()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, name 
+            SELECT id, name, month
             FROM projects 
             WHERE year_id = (SELECT id FROM years WHERE year = ?)
         """, (year,))
-        projects = cursor.fetchall()  # 返回 [(id, name), ...]
+        projects = cursor.fetchall()  # 返回 [(id, name, month), ...]
+        print(f"Raw projects data for year {year}: {projects}")  # 添加日志
         conn.close()
         return projects
 
@@ -165,6 +218,25 @@ class DatabaseManager:
         total_expense = result[1] or 0
         return total_income, total_expense, total_income - total_expense
 
+    def update_transaction(self, transaction_id, amount, trans_type, payment_method, stage):
+        """更新收支记录"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE transactions
+                SET amount = ?, type = ?, payment_method = ?, stage = ?
+                WHERE id = ?
+            """, (amount, trans_type, payment_method, stage, transaction_id))
+            conn.commit()
+            print(f"收支记录 {transaction_id} 更新成功")
+            return True
+        except Exception as e:
+            print(f"更新收支记录失败: {str(e)}")
+            return False
+        finally:
+            conn.close()
+            
 # 测试代码
 if __name__ == '__main__':
     db = DatabaseManager()

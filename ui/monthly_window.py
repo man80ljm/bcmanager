@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushB
 from PyQt5.QtGui import QIcon
 from database.db_manager import DatabaseManager
 from utils.file_manager import FileManager
+from ui.dialogs import EditTransactionDialog
 import os
 
 class MonthlyWindow(QMainWindow):
@@ -64,8 +65,28 @@ class MonthlyWindow(QMainWindow):
         self.summary_label.setText(f"总收入: {total_income} | 总支出: {total_expense} | 结余: {balance}")
 
     def edit_transaction(self, row):
-        # 占位方法，显示修改对话框
-        QMessageBox.information(self, "提示", f"修改第 {row + 1} 行记录功能待实现！")
+        """修改指定行的收支记录"""
+        # 获取当前行的记录
+        transaction = self.db.get_monthly_transactions(self.year, self.month)[row]
+        # 弹出修改对话框
+        dialog = EditTransactionDialog(transaction, self)
+        if dialog.exec_():
+            # 获取更新后的数据
+            updated_data = dialog.get_updated_data()
+            # 更新数据库
+            success = self.db.update_transaction(
+                updated_data["id"],
+                updated_data["amount"],
+                updated_data["type"],
+                updated_data["payment_method"],
+                updated_data["stage"]
+            )
+            if success:
+                QMessageBox.information(self, "成功", "收支记录修改成功！")
+                # 刷新表格
+                self.load_transactions()
+            else:
+                QMessageBox.warning(self, "失败", "收支记录修改失败！")
 
     def show_create_dialog(self):
         """显示创建方式选择对话框"""
@@ -114,7 +135,7 @@ class MonthlyWindow(QMainWindow):
 
         # 步骤 6: 保存到数据库
         print(f"创建项目: name={project_name}, year={self.year}")
-        success, project_id = self.db.add_project(project_name, self.year)
+        success, project_id = self.db.add_project(project_name, self.year, self.month)
         if success and project_id is not None:
             print(f"项目 {project_name} 创建成功，ID: {project_id}")
             year_int = int(self.year)
@@ -138,7 +159,21 @@ class MonthlyWindow(QMainWindow):
     def create_existing_project_transaction(self):
         """选择已有项目创建收支记录"""
         # 步骤 1: 选择年份
-        years = self.db.get_years()
+        from datetime import datetime
+        current_date = datetime.now()
+        current_year = current_date.year
+        current_month = current_date.month
+
+        transaction_year = int(self.year)
+        transaction_month = int(self.month)
+
+        if transaction_year > current_year or (transaction_year == current_year and transaction_month > current_month):
+            QMessageBox.warning(self, "错误", f"不能为未来的月份创建收支记录！当前日期：{current_year}年{current_month}月")
+            return
+        
+        all_years = self.db.get_years()
+        current_year = int(self.year)
+        years = [year for year in all_years if int(year) <= current_year]
         if not years:
             QMessageBox.warning(self, "错误", "数据库中没有年份记录，请先创建年份！")
             return
@@ -149,16 +184,32 @@ class MonthlyWindow(QMainWindow):
 
         # 步骤 2: 选择项目
         projects = self.db.get_projects_by_year(selected_year)
-        if not projects:
-            QMessageBox.warning(self, "错误", f"{selected_year} 年没有已有项目！")
+        print(f"Projects for year {selected_year}: {projects}")
+
+        # 过滤掉创建月份晚于当前窗口月份的项目
+        current_window_month = int(self.month)
+        filtered_projects = [p for p in projects if p[2] is not None and p[2] <= current_window_month]
+        print(f"Filtered projects (month <= {current_window_month}): {filtered_projects}")
+
+        if not filtered_projects:
+            QMessageBox.warning(self, "错误", f"{selected_year} 年没有创建月份在 {current_window_month} 月及之前的项目！")
             return
+        
+        # 显示项目名称时包含创建月份
         project_names = [p[1] for p in projects]
         project_ids = {p[1]: p[0] for p in projects}
+        project_months = {p[1]: p[2] if len(p) > 2 else None for p in projects}  # 映射项目名称到创建月份
         project_name, ok = QInputDialog.getItem(self, "选择项目", "请选择已有项目：", project_names, 0, False)
         if not ok:
             print("取消选择项目")
             return
         project_id = project_ids[project_name]
+        project_month = project_months[project_name]  # 获取项目的创建月份
+
+        # 确保 project_month 不为 None（已经通过过滤确保）
+        if project_month is None:
+            QMessageBox.critical(self, "错误", f"项目 {project_name} 的创建月份未定义，请联系管理员检查数据库！")
+            return
 
         # 步骤 3: 选择项目阶段
         stages = ["第二阶段", "第三阶段", "第四阶段"]
@@ -181,7 +232,7 @@ class MonthlyWindow(QMainWindow):
 
         # 步骤 6: 选择支付方式
         payment_method, ok = QInputDialog.getItem(self, "选择支付方式", "请选择支付方式：",
-                                                 ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
+                                                ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
         if not ok:
             print("取消选择支付方式")
             return
@@ -197,16 +248,17 @@ class MonthlyWindow(QMainWindow):
         success = self.db.add_transaction(project_id, amount, trans_type, payment_method, self.month, self.year, stage)
         if success:
             # 创建快捷方式
-            shortcut_success, result = self.file_manager.create_shortcut(self.year, self.month, project_name, stage, selected_year)
+            print(f"创建快捷方式: year={self.year}, month={self.month}, project_name={project_name}, stage={stage}, original_year={selected_year}, project_month={project_month}")
+            shortcut_success, result = self.file_manager.create_shortcut(self.year, self.month, project_name, stage, selected_year, project_month)
             if not shortcut_success:
                 QMessageBox.warning(self, "提示", f"快捷方式创建失败: {result}")
+            else:
+                print(f"快捷方式创建成功: {result}")
             QMessageBox.information(self, "成功", "收支记录创建成功！")
             self.load_transactions()
         else:
             QMessageBox.warning(self, "失败", "保存收支记录失败！")
 
-    def edit_transaction(self, row):
-        QMessageBox.information(self, "提示", f"修改第 {row + 1} 行记录功能待实现！")
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication

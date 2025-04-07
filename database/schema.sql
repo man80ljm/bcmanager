@@ -1,5 +1,3 @@
--- database/schema.sql
-
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 用户ID，自增主键
@@ -23,6 +21,7 @@ CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     year_id INTEGER,
+    month INTEGER CHECK (month BETWEEN 1 AND 12),  -- 新增 month 字段
     created_at TEXT NOT NULL,
     FOREIGN KEY (year_id) REFERENCES years(id)
 );
@@ -38,8 +37,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
     year_id INTEGER,
     created_at TEXT NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    FOREIGN KEY (year_id) REFERENCES years(id)
+    FOREIGN KEY (project_id) REFERENCES projects(id),  -- 修正：引用 projects 表
+    FOREIGN KEY (year_id) REFERENCES years(id)        -- 添加逗号分隔
 );
 
 -- 备注表

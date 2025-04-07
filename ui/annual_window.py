@@ -1,16 +1,21 @@
 # ui/annual_window.py
-
+import logging
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,QTime
 from PyQt5.QtGui import QIcon
 from ui.monthly_window import MonthlyWindow
+
+# 在文件顶部配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class AnnualWindow(QMainWindow):
     def __init__(self, year):
         super().__init__()
         self.year = year
         self.active_monthly_windows = {}  # 可选：跟踪已打开的月份窗口，避免重复打开
+        self.last_click_time = 0  # 记录上次点击时间
+        self.debounce_interval = 300  # 防抖间隔（毫秒）
         self.initUI()
 
     def initUI(self):
@@ -126,22 +131,50 @@ class AnnualWindow(QMainWindow):
         main_layout.addStretch()
 
     def open_monthly_window(self, month):
-        # 可选：检查是否已打开该月份窗口，避免重复
-        if month not in self.active_monthly_windows or self.active_monthly_windows[month].isHidden():
-            monthly_window = MonthlyWindow(self.year, month)
-            monthly_window.show()
-            # 当窗口关闭时，从字典中移除
-            monthly_window.destroyed.connect(lambda: self.active_monthly_windows.pop(month, None))
-            self.active_monthly_windows[month] = monthly_window
-        else:
-            # 如果窗口已存在，将其置于前台
-            self.active_monthly_windows[month].raise_()
-            self.active_monthly_windows[month].activateWindow()
+        logging.info(f"Opening monthly window for {self.year}-{month}")
+        current_time = QTime.currentTime().msecsSinceStartOfDay()
+        if current_time - self.last_click_time < self.debounce_interval:
+            logging.info(f"Debounced click for month {month}")
+            return
+        
+        self.last_click_time = current_time
+        # 检查窗口是否已存在且有效
+        if month in self.active_monthly_windows:
+            window = self.active_monthly_windows[month]
+            if window.isVisible() and not window.isHidden():
+                logging.info(f"Month {month} window already open, raising to front")
+                window.raise_()  # 提升到前台
+                window.activateWindow()
+                return
+            else:
+                logging.warning(f"Month {month} window found but not visible, recreating")
+                # 窗口已存在但被隐藏或销毁，移除旧引用
+                del self.active_monthly_windows[month]
+
+        # 创建新窗口
+        monthly_window = MonthlyWindow(self.year, month)
+        monthly_window.show()
+        
+        # 连接销毁信号并清理字典
+        def cleanup():
+            try:
+                self.active_monthly_windows.pop(month, None)
+                logging.warning(f"Month {month} window found but not visible, recreating")
+            except Exception as e:
+                print(f"Error cleaning up month {month}: {e}")
+        
+        monthly_window.destroyed.connect(cleanup)
+        self.active_monthly_windows[month] = monthly_window
+        logging.warning(f"Month {month} window found but not visible, recreating")
 
     def closeEvent(self, event):
-        # 关闭年度窗口时，关闭所有打开的月度窗口
-        for window in self.active_monthly_windows.values():
-            window.close()
+        # 关闭并清理所有月度窗口
+        for month, window in list(self.active_monthly_windows.items()):
+            try:
+                window.close()
+                self.active_monthly_windows.pop(month, None)
+            except Exception as e:
+                print(f"Error closing window for month {month}: {e}")
         super().closeEvent(event)
 
 if __name__ == '__main__':

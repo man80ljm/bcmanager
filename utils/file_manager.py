@@ -56,29 +56,31 @@ class FileManager:
             logging.error(f"Restore failed: {str(e)}")
             return False, str(e)
     
-    def create_shortcut(self, year, month, project_name, stage, original_year):
+    def create_shortcut(self, year, month, project_name, stage, original_year, original_month):
         """创建项目文件夹快捷方式"""
         base_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月")
-        original_path = os.path.join(self.base_dir, str(original_year), project_name)
+        original_path = os.path.join(self.base_dir, f"{original_year}年", f"{str(original_month).zfill(2)}月", project_name)
         shortcut_name = f"{project_name}（{stage}）.lnk"
         shortcut_path = os.path.join(base_path, shortcut_name)
 
         try:
-            # 确保目标路径（原始项目目录）存在
-            if not os.path.exists(original_path):
-                os.makedirs(original_path, exist_ok=True)
-                logging.info(f"创建原始项目目录: {original_path}")
             # 确保快捷方式所在目录存在
             os.makedirs(base_path, exist_ok=True)
+
+            # 检查原始项目目录是否存在
+            if not os.path.exists(original_path):
+                logging.error(f"原始项目目录不存在: {original_path}")
+                return False, f"原始项目目录不存在: {original_path}"
+
             if os.name == 'nt':  # Windows
                 import win32com.client
                 shell = win32com.client.Dispatch("WScript.Shell")
                 shortcut = shell.CreateShortCut(shortcut_path)
-                # Windows 路径需要使用反斜杠
-                shortcut.TargetPath = os.path.abspath(original_path).replace('/', '\\')
-                shortcut.WorkingDirectory = os.path.dirname(shortcut.TargetPath)
+                target_path = os.path.abspath(original_path).replace('/', '\\')
+                shortcut.TargetPath = target_path
+                shortcut.WorkingDirectory = os.path.dirname(target_path)
                 shortcut.save()
-                logging.info(f"快捷方式创建成功: {shortcut_path}, 目标路径: {shortcut.TargetPath}")
+                logging.info(f"快捷方式创建成功: {shortcut_path}, 目标路径: {target_path}")
             else:  # Linux/macOS，使用符号链接
                 os.symlink(original_path, shortcut_path)
                 logging.info(f"符号链接创建成功: {shortcut_path}")
@@ -98,7 +100,9 @@ class FileManager:
             os.makedirs(os.path.join(base_path, "交付文件"), exist_ok=True)
             os.makedirs(os.path.join(base_path, "相关资料"), exist_ok=True)
             logging.info(f"文件夹创建成功: {base_path}")
+            print(f"Created project folder: {base_path}")  # 添加日志
             return True, base_path
         except Exception as e:
             logging.error(f"创建文件夹失败: {str(e)}")
+            print(f"Failed to create project folder: {str(e)}")  # 添加日志
             return False, str(e)
