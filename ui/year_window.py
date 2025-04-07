@@ -208,7 +208,8 @@ class YearWindow(QMainWindow):
         # 弹出选择备份文件的对话框
         dialog = QDialog(self)
         dialog.setWindowTitle("选择备份文件")
-        dialog.setFixedSize(400, 200)
+        dialog.setFixedSize(600, 300)
+        dialog.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)  # 去除问号按钮
 
         layout = QVBoxLayout()
         label = QLabel("请选择要恢复的备份文件：")
