@@ -8,9 +8,20 @@ class DatabaseManager:
     def __init__(self, db_path="project_accounting.db"):
         self.db_path = db_path
         self.init_database()
+        self.verify_tables()
+    
+    def verify_tables(self):
+        required_tables = ["users", "years", "projects", "transactions", "remarks", "expense_details"]
+        conn = self.connect()
+        cursor = conn.cursor()
+        for table in required_tables:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+            if not cursor.fetchone():
+                conn.close()
+                raise RuntimeError(f"数据库缺少必要的表：{table}。请删除 project_accounting.db 文件并重新运行程序。")
+        conn.close()
 
     def init_database(self):
-        """初始化数据库，创建表结构，并处理表结构升级"""
         if not os.path.exists(self.db_path):
             print(f"创建数据库文件：{self.db_path}")
 
@@ -21,7 +32,6 @@ class DatabaseManager:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
         projects_table_exists = cursor.fetchone() is not None
 
-        # 如果 projects 表存在，检查是否有 month 列
         if projects_table_exists:
             cursor.execute("PRAGMA table_info(projects)")
             columns = [col[1] for col in cursor.fetchall()]
@@ -49,7 +59,6 @@ class DatabaseManager:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")
         transactions_table_exists = cursor.fetchone() is not None
 
-        # 如果 transactions 表存在，检查是否有 status 列
         if transactions_table_exists:
             cursor.execute("PRAGMA table_info(transactions)")
             columns = [col[1] for col in cursor.fetchall()]
@@ -57,18 +66,63 @@ class DatabaseManager:
                 print("transactions 表缺少 status 列，正在升级表结构...")
                 cursor.execute("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT '未结项' CHECK (status IN ('未结项', '已结项'))")
                 print("transactions 表结构升级完成！")
+            if 'initial_amount' not in columns:
+                print("transactions 表缺少 initial_amount 列，正在升级表结构...")
+                cursor.execute("ALTER TABLE transactions ADD COLUMN initial_amount REAL NOT NULL DEFAULT 0")
+                # 将现有记录的 amount 复制到 initial_amount
+                cursor.execute("UPDATE transactions SET initial_amount = amount")
+                print("transactions 表结构升级完成！")
+
+        # 检查 remarks 表是否存在，并确保 transaction_id 有 UNIQUE 约束
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='remarks'")
+        remarks_table_exists = cursor.fetchone() is not None
+
+        if remarks_table_exists:
+            cursor.execute("PRAGMA table_info(remarks)")
+            columns = [col for col in cursor.fetchall()]
+            transaction_id_unique = False
+            for col in columns:
+                if col[1] == "transaction_id" and col[5] == 1:
+                    transaction_id_unique = True
+                    break
+            if not transaction_id_unique:
+                print("remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...")
+                cursor.execute("""
+                    CREATE TABLE remarks_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        transaction_id INTEGER UNIQUE,
+                        content TEXT,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+                    )
+                """)
+                cursor.execute("""
+                    INSERT INTO remarks_temp (id, transaction_id, content, updated_at)
+                    SELECT id, transaction_id, content, updated_at
+                    FROM remarks
+                    WHERE id IN (
+                        SELECT MAX(id)
+                        FROM remarks
+                        GROUP BY transaction_id
+                    )
+                """)
+                cursor.execute("DROP TABLE remarks")
+                cursor.execute("ALTER TABLE remarks_temp RENAME TO remarks")
+                print("remarks 表结构升级完成！")
+
+        # 检查 expense_details 表是否存在
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expense_details'")
+        expense_details_table_exists = cursor.fetchone() is not None
 
         # 读取 schema.sql 文件
         with open("database/schema.sql", "r", encoding="utf-8") as f:
             schema_lines = f.read().splitlines()
 
-        # 如果 projects 表存在，过滤掉 projects 表定义
-        # 如果 transactions 表存在，过滤掉 transactions 表定义
+        # 动态过滤表定义
         filtered_lines = []
         skip = False
         skip_table = None
         for line in schema_lines:
-            # 检查是否需要开始跳过
             if line.strip().startswith("CREATE TABLE IF NOT EXISTS projects") and projects_table_exists:
                 skip = True
                 skip_table = "projects"
@@ -77,24 +131,69 @@ class DatabaseManager:
                 skip = True
                 skip_table = "transactions"
                 continue
+            elif line.strip().startswith("CREATE TABLE IF NOT EXISTS remarks") and remarks_table_exists:
+                skip = True
+                skip_table = "remarks"
+                continue
+            elif line.strip().startswith("CREATE TABLE IF NOT EXISTS expense_details") and expense_details_table_exists:
+                skip = True
+                skip_table = "expense_details"
+                continue
 
-            # 检查是否结束跳过
             if skip and line.strip().endswith(";"):
                 skip = False
                 skip_table = None
                 continue
 
-            # 如果不在跳过模式，添加该行
             if not skip:
                 filtered_lines.append(line)
 
         schema = "\n".join(filtered_lines)
-
-        # 执行 schema
         cursor.executescript(schema)
 
         conn.commit()
         conn.close()
+
+    def add_transaction(self, project_id, amount, trans_type, payment_method, month, year, stage=None):
+        conn = self.connect()
+        cursor = conn.cursor()
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
+            year_row = cursor.fetchone()
+            if not year_row:
+                raise ValueError(f"年份 {year} 不存在")
+            year_id = year_row[0]
+            print(f"插入收支记录: project_id={project_id}, amount={amount}, type={trans_type}, payment_method={payment_method}, stage={stage}, month={month}, year_id={year_id}")
+            cursor.execute("""
+                INSERT INTO transactions (project_id, amount, initial_amount, type, payment_method, stage, month, year_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (project_id, amount, amount, trans_type, payment_method, stage, month, year_id, created_at))
+            transaction_id = cursor.lastrowid
+            conn.commit()
+            print("收支记录插入成功")
+            return True
+        except Exception as e:
+            print(f"添加收支记录失败: {str(e)}")
+            return False
+        finally:
+            conn.close()
+
+    def get_transaction_initial_amount(self, transaction_id):
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT initial_amount FROM transactions WHERE id = ?", (transaction_id,))
+        amount = cursor.fetchone()[0]
+        conn.close()
+        return amount
+
+    def get_expense_details_total(self, transaction_id):
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT SUM(amount) FROM expense_details WHERE transaction_id = ?", (transaction_id,))
+        total = cursor.fetchone()[0] or 0
+        conn.close()
+        return total
 
     def connect(self):
         """创建并返回数据库连接"""
@@ -147,26 +246,27 @@ class DatabaseManager:
         conn.close()
         return exists
     
-    def add_project(self, name, year, month):
-        """添加新项目"""
-        if month is None or not (1 <= month <= 12):
-            raise ValueError("月份必须在 1-12 之间")
+    def add_transaction(self, project_id, amount, trans_type, payment_method, month, year, stage=None):
         conn = self.connect()
         cursor = conn.cursor()
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
             cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
-            year_id = cursor.fetchone()
-            if not year_id:
+            year_row = cursor.fetchone()
+            if not year_row:
                 raise ValueError(f"年份 {year} 不存在")
-            year_id = year_id[0]
-            cursor.execute("INSERT INTO projects (name, year_id, month, created_at) VALUES (?, ?, ?, ?)", 
-                        (name, year_id, month, created_at))
-            project_id = cursor.lastrowid
+            year_id = year_row[0]
+            print(f"插入收支记录: project_id={project_id}, amount={amount}, type={trans_type}, payment_method={payment_method}, stage={stage}, month={month}, year_id={year_id}")
+            cursor.execute("""
+                INSERT INTO transactions (project_id, amount, initial_amount, type, payment_method, stage, month, year_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (project_id, amount, amount, trans_type, payment_method, stage, month, year_id, created_at))
             conn.commit()
-            return True, project_id
-        except sqlite3.IntegrityError:
-            return False, None
+            print("收支记录插入成功")
+            return True
+        except Exception as e:
+            print(f"添加收支记录失败: {str(e)}")
+            return False
         finally:
             conn.close()
     
@@ -210,21 +310,19 @@ class DatabaseManager:
             conn.close()
 
     def get_monthly_transactions(self, year, month):
-            """获取某月的所有收支记录，包括状态"""
-            conn = self.connect()
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT t.id, t.created_at, p.name, t.amount, t.type, t.payment_method, t.stage, t.status
-                FROM transactions t
-                LEFT JOIN projects p ON t.project_id = p.id
-                WHERE t.year_id = (SELECT id FROM years WHERE year = ?) AND t.month = ?
-            """, (year, month))
-            transactions = cursor.fetchall()
-            conn.close()
-            return transactions
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.id, t.created_at, p.name, t.amount, t.type, t.payment_method, t.stage, t.status, t.initial_amount
+            FROM transactions t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.year_id = (SELECT id FROM years WHERE year = ?) AND t.month = ?
+        """, (year, month))
+        transactions = cursor.fetchall()
+        conn.close()
+        return transactions
 
     def get_monthly_summary(self, year, month):
-        """获取某月汇总信息"""
         conn = self.connect()
         cursor = conn.cursor()
         cursor.execute("""
@@ -241,24 +339,42 @@ class DatabaseManager:
         return total_income, total_expense, total_income - total_expense
 
     def update_transaction(self, transaction_id, amount, trans_type, payment_method):
-            """更新收支记录（不再更新 stage）"""
-            conn = self.connect()
-            cursor = conn.cursor()
-            try:
-                print(f"更新收支记录: id={transaction_id}, amount={amount}, type={trans_type}, payment_method={payment_method}")
-                cursor.execute("""
-                    UPDATE transactions
-                    SET amount = ?, type = ?, payment_method = ?
-                    WHERE id = ?
-                """, (amount, trans_type, payment_method, transaction_id))
-                conn.commit()
-                print(f"收支记录 {transaction_id} 更新成功")
-                return True
-            except Exception as e:
-                print(f"更新收支记录失败: {str(e)}")
-                return False
-            finally:
-                conn.close()
+        conn = self.connect()
+        cursor = conn.cursor()
+        try:
+            # 获取当前类型和详情总金额
+            cursor.execute("SELECT type FROM transactions WHERE id = ?", (transaction_id,))
+            old_type = cursor.fetchone()[0]
+            
+            # 更新初始金额、类型和支付方式
+            cursor.execute("""
+                UPDATE transactions
+                SET initial_amount = ?, type = ?, payment_method = ?
+                WHERE id = ?
+            """, (amount, trans_type, payment_method, transaction_id))
+            
+            # 类型变化时清理旧数据
+            if old_type != trans_type:
+                if old_type == "收入":  # 收入 -> 支出
+                    cursor.execute("DELETE FROM remarks WHERE transaction_id = ?", (transaction_id,))
+                else:  # 支出 -> 收入
+                    cursor.execute("DELETE FROM expense_details WHERE transaction_id = ?", (transaction_id,))
+            
+            # 动态更新 amount
+            if trans_type == "支出":
+                details_total = self.get_expense_details_total(transaction_id)
+                new_amount = amount + details_total
+            else:
+                new_amount = amount  # 收入类型没有详情金额，直接使用 initial_amount
+            cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"更新收支记录失败: {str(e)}")
+            return False
+        finally:
+            conn.close()
 
     def update_transaction_status(self, transaction_id, status):
             """更新收支记录的状态"""
