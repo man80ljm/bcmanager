@@ -121,7 +121,7 @@ class AnnualWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle(f'{self.year} 年度详情 - 项目管理与财务记账系统')
+        self.setWindowTitle(f'{self.year} 年度详情')
         self.setFixedSize(600, 350)
         self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))
 
@@ -288,7 +288,7 @@ class AnnualWindow(QMainWindow):
                 self.active_quarterly_dialogs.pop(quarter, None)
 
         # 创建新弹窗
-        dialog = QuarterlySummaryDialog(self.year, quarter, self)
+        dialog = QuarterlySummaryDialog(self.year, quarter, parent=self)
         dialog.show()
         
         # 连接销毁信号并清理字典
@@ -347,7 +347,7 @@ class AnnualWindow(QMainWindow):
                 logging.warning(f"Month {month} window is invalid, removing")
                 self.active_monthly_windows.pop(month, None)
 
-        monthly_window = MonthlyWindow(self.year, month)
+        monthly_window = MonthlyWindow(self.year, month, parent=self)
         monthly_window.show()
         monthly_window.destroyed.connect(lambda: self.active_monthly_windows.pop(month, None))
         self.active_monthly_windows[month] = monthly_window
