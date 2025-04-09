@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
                              QMenu, QInputDialog, QComboBox, QMessageBox, QHBoxLayout, QDialog, QTextEdit,
-                             QTableWidgetItem, QHeaderView,QApplication)
+                             QTableWidgetItem, QHeaderView,QApplication, QLineEdit)
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt
 from database.db_manager import DatabaseManager
@@ -145,6 +145,7 @@ class DetailExpenseDialog(QDialog):
         self.update_total()
 
     def save_details(self):
+        # 首先保存数据
         conn = self.db.connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM expense_details WHERE transaction_id = ?", (self.transaction[0],))
@@ -165,13 +166,32 @@ class DetailExpenseDialog(QDialog):
                 return
             cursor.execute("INSERT INTO expense_details (transaction_id, name, type, amount) VALUES (?, ?, ?, ?)",
                            (self.transaction[0], name, trans_type, amount))
+        
+        # 获取 initial_amount 并更新 amount    
         cursor.execute("SELECT initial_amount FROM transactions WHERE id = ?", (self.transaction[0],))
         initial_amount = cursor.fetchone()[0]
+        conn.commit()
+        conn.close()
+
+        # 在新连接中重新计算 details_total 并更新 amount
+        conn = self.db.connect()
+        cursor = conn.cursor()
         details_total = self.db.get_expense_details_total(self.transaction[0])
         new_amount = initial_amount + details_total
         cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, self.transaction[0]))
         conn.commit()
         conn.close()
+        
+        # 添加日志验证
+        logging.info(f"Saving details: transaction_id={self.transaction[0]}, initial_amount={initial_amount}, details_total={details_total}, new_amount={new_amount}")
+        
+        # 通知父窗口刷新列表
+        if self.parent() and hasattr(self.parent(), 'load_transactions'):
+            logging.info("Calling parent.load_transactions()")
+            self.parent().load_transactions()
+        else:
+            logging.warning("Parent or load_transactions not available")
+
         self.accept()
 
     def adjust_column_widths(self, event):
@@ -205,12 +225,55 @@ class DetailExpenseDialog(QDialog):
         self.table.setItem(row_count, 2, QTableWidgetItem("0"))
 
     def update_total(self):
-        total = sum(float(self.table.item(row, 2).text() or 0) for row in range(self.table.rowCount()))
+        total = 0
+        for row in range(self.table.rowCount()):
+            amount = float(self.table.item(row, 2).text() or 0)
+            trans_type = self.table.cellWidget(row, 1).currentText()
+            if trans_type == "收入":
+                total += amount
+            elif trans_type == "支出":
+                total -= amount
         self.total_label.setText(f"总金额：{total}元")
 
     def on_item_changed(self, item):
         if item.column() == 2:  # 仅在金额列（第 2 列）发生变化时更新总金额
             self.update_total()
+
+class EditTransactionDialog(QDialog):
+    def __init__(self, transaction, db, parent=None):
+        super().__init__(parent)
+        self.transaction = transaction
+        self.db = db
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+        self.amount_input = QLineEdit(str(self.transaction[8]))  # 显示 initial_amount
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(["收入", "支出"])
+        self.type_combo.setCurrentText(self.transaction[4])
+        self.payment_combo = QComboBox()
+        self.payment_combo.addItems(["微信", "支付宝", "对公账户", "对私账户", "现金"])
+        self.payment_combo.setCurrentText(self.transaction[5])
+        layout.addWidget(QLabel("金额（初始金额）："))
+        layout.addWidget(self.amount_input)
+        layout.addWidget(QLabel("类型："))
+        layout.addWidget(self.type_combo)
+        layout.addWidget(QLabel("支付方式："))
+        layout.addWidget(self.payment_combo)
+        save_button = QPushButton("保存")
+        save_button.clicked.connect(self.accept)
+        layout.addWidget(save_button)
+        self.setLayout(layout)
+
+    def get_updated_data(self):
+        return {
+            "id": self.transaction[0],
+            "amount": float(self.amount_input.text()),
+            "type": self.type_combo.currentText(),
+            "payment_method": self.payment_combo.currentText(),
+            "name": self.transaction[2]  # 假设项目名称不变，若需修改需添加输入框
+        }
 
 class MonthlyWindow(QMainWindow):
     def __init__(self, year, month, parent=None):

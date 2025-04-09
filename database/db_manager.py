@@ -3,6 +3,7 @@
 import sqlite3
 import os
 from datetime import datetime
+import logging
 
 class DatabaseManager:
     def __init__(self, db_path="project_accounting.db"):
@@ -190,9 +191,18 @@ class DatabaseManager:
     def get_expense_details_total(self, transaction_id):
         conn = self.connect()
         cursor = conn.cursor()
-        cursor.execute("SELECT SUM(amount) FROM expense_details WHERE transaction_id = ?", (transaction_id,))
+        cursor.execute("""
+            SELECT SUM(CASE 
+                    WHEN type = '收入' THEN amount 
+                    WHEN type = '支出' THEN -amount 
+                    ELSE 0 
+                    END)
+            FROM expense_details 
+            WHERE transaction_id = ?
+        """, (transaction_id,))
         total = cursor.fetchone()[0] or 0
         conn.close()
+        logging.info(f"Calculated details_total for transaction_id={transaction_id}: {total}")
         return total
 
     def connect(self):
@@ -360,10 +370,10 @@ class DatabaseManager:
                 else:  # 支出 -> 收入
                     cursor.execute("DELETE FROM expense_details WHERE transaction_id = ?", (transaction_id,))
             
-            # 动态更新 amount
+            # 更新 amount：如果是支出类型，累加 expense_details 的总和
             if trans_type == "支出":
                 details_total = self.get_expense_details_total(transaction_id)
-                new_amount = amount + details_total
+                new_amount = amount + details_total # 使用用户输入的新金额加上详情总和
             else:
                 new_amount = amount  # 收入类型没有详情金额，直接使用 initial_amount
             cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
@@ -431,7 +441,37 @@ class DatabaseManager:
             return False
         finally:
             conn.close()
+
+    def add_project(self, name, year, month):
+        """添加新项目到数据库"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            # 获取 year_id
+            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
+            year_row = cursor.fetchone()
+            if not year_row:
+                # 如果年份不存在，自动创建
+                cursor.execute("INSERT INTO years (year, created_at) VALUES (?, ?)", (year, created_at))
+                year_id = cursor.lastrowid
+            else:
+                year_id = year_row[0]
             
+            # 插入项目
+            cursor.execute("""
+                INSERT INTO projects (name, year_id, month, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (name, year_id, month, created_at))
+            project_id = cursor.lastrowid
+            conn.commit()
+            print(f"项目添加成功: name={name}, year_id={year_id}, month={month}, project_id={project_id}")
+            return True, project_id
+        except Exception as e:
+            print(f"添加项目失败: {str(e)}")
+            return False, None
+        finally:
+            conn.close()
 # 测试代码
 if __name__ == '__main__':
     db = DatabaseManager()
