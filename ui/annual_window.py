@@ -15,7 +15,7 @@ class QuarterlySummaryDialog(QDialog):
     def __init__(self, year, quarter, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"{year}年 Q{quarter} 季度统计")
-        self.setFixedSize(500, 300)
+        self.setFixedSize(600, 300)
         self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)  # 去掉疑问号
         self.year = year
@@ -40,23 +40,26 @@ class QuarterlySummaryDialog(QDialog):
             months = [10, 11, 12]
             quarter_name = "Q4 (10-12月)"
 
-        # 统计指定季度的收支
+        # 统计指定季度的收支，并记录每个月的明细
         total_income = 0
         total_expense = 0
+        monthly_details = []  # 存储每个月的明细
         for month in months:
-            income, expense, _ = self.db.get_monthly_summary(self.year, month)
+            income, expense, balance = self.db.get_monthly_summary(self.year, month)
             total_income += income
             total_expense += expense
+            # 添加每月的明细
+            monthly_details.append(f"{month}月：收入 {income}，支出 {expense}，结余 {balance}")
 
-        balance = total_income - total_expense
+        total_balance = total_income - total_expense
+
+        # 构建显示内容：先显示每月的明细，再显示总计
+        summary_text = f"{self.year}年 {quarter_name} 统计：\n\n"
+        summary_text += "\n".join(monthly_details)  # 每月的明细
+        summary_text += f"\n\n总计：收入 {total_income}，支出 {total_expense}，结余 {total_balance}"
 
         # 显示统计结果
-        summary_label = QLabel(
-            f"{self.year}年 {quarter_name} 统计：\n\n"
-            f"总收入: {total_income}\n"
-            f"总支出: {total_expense}\n"
-            f"结余: {balance}"
-        )
+        summary_label = QLabel(summary_text)
         summary_label.setStyleSheet("font-size: 22px; padding: 10px;")
         layout.addWidget(summary_label)
 
@@ -237,11 +240,6 @@ class AnnualWindow(QMainWindow):
 
     def show_quarterly_summary(self, quarter):
         """显示指定季度的收支统计"""
-        # 获取当前时间
-        current_date = datetime.now()
-        current_year = current_date.year
-        current_month = current_date.month
-
         # 确定季度的月份范围
         if quarter == 1:
             months = [1, 2, 3]
@@ -257,17 +255,6 @@ class AnnualWindow(QMainWindow):
             quarter_name = "Q4 (10-12月)"
         else:
             return
-
-        # 检查目标季度是否已结束
-        target_year = int(self.year)
-        if target_year > current_year:
-            QMessageBox.warning(self, "提示", f"{self.year}年{quarter_name} 尚未开始，无法统计！")
-            return
-        elif target_year == current_year:
-            last_month_of_quarter = months[-1]
-            if current_month < last_month_of_quarter:
-                QMessageBox.warning(self, "提示", f"当前季度 {quarter_name} 尚未结束（当前月份：{current_month}月），无法统计！")
-                return
 
         # 检查是否已存在该季度的弹窗
         if quarter in self.active_quarterly_dialogs:
