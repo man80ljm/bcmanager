@@ -255,31 +255,7 @@ class DatabaseManager:
         exists = cursor.fetchone() is not None
         conn.close()
         return exists
-    
-    def add_transaction(self, project_id, amount, trans_type, payment_method, month, year, stage=None):
-        conn = self.connect()
-        cursor = conn.cursor()
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        try:
-            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
-            year_row = cursor.fetchone()
-            if not year_row:
-                raise ValueError(f"年份 {year} 不存在")
-            year_id = year_row[0]
-            print(f"插入收支记录: project_id={project_id}, amount={amount}, type={trans_type}, payment_method={payment_method}, stage={stage}, month={month}, year_id={year_id}")
-            cursor.execute("""
-                INSERT INTO transactions (project_id, amount, initial_amount, type, payment_method, stage, month, year_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (project_id, amount, amount, trans_type, payment_method, stage, month, year_id, created_at))
-            conn.commit()
-            print("收支记录插入成功")
-            return True
-        except Exception as e:
-            print(f"添加收支记录失败: {str(e)}")
-            return False
-        finally:
-            conn.close()
-    
+       
     def get_projects_by_year(self, year):
         """获取指定年份的所有项目"""
         conn = self.connect()
@@ -293,31 +269,6 @@ class DatabaseManager:
         print(f"Raw projects data for year {year}: {projects}")  # 添加日志
         conn.close()
         return projects
-
-    def add_transaction(self, project_id, amount, trans_type, payment_method, month, year, stage=None):
-        """添加收支记录，支持阶段"""
-        conn = self.connect()
-        cursor = conn.cursor()
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        try:
-            cursor.execute("SELECT id FROM years WHERE year = ?", (year,))
-            year_row = cursor.fetchone()
-            if not year_row:
-                raise ValueError(f"年份 {year} 不存在")
-            year_id = year_row[0]
-            print(f"插入收支记录: project_id={project_id}, amount={amount}, type={trans_type}, payment_method={payment_method}, stage={stage}, month={month}, year_id={year_id}")
-            cursor.execute("""
-                INSERT INTO transactions (project_id, amount, type, payment_method, stage, month, year_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (project_id, amount, trans_type, payment_method, stage, month, year_id, created_at))
-            conn.commit()
-            print("收支记录插入成功")
-            return True
-        except Exception as e:
-            print(f"添加收支记录失败: {str(e)}")
-            return False
-        finally:
-            conn.close()
 
     def get_monthly_transactions(self, year, month):
         conn = self.connect()

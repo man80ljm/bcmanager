@@ -1,12 +1,11 @@
 from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
                              QMenu, QInputDialog, QComboBox, QMessageBox, QHBoxLayout, QDialog, QTextEdit,
-                             QTableWidgetItem, QHeaderView,QApplication, QLineEdit)
+                             QTableWidgetItem, QHeaderView,QApplication, QLineEdit,QAction)
 from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,QTimer
 from database.db_manager import DatabaseManager
 from utils.file_manager import FileManager
 from ui.dialogs import EditTransactionDialog
-from PyQt5.QtWidgets import QMenu, QAction
 import logging
 import os
 import sys
@@ -112,6 +111,8 @@ class DetailExpenseDialog(QDialog):
         self.table.setColumnWidth(0, 500)
         self.table.setColumnWidth(1, 250)
         self.table.setColumnWidth(2, 250)
+        # 设置编辑触发器：只允许双击或程序触发的编辑
+        self.table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed)
         self.table.resizeEvent = self.adjust_column_widths
         self.load_sub_transactions()
         layout.addWidget(self.table)
@@ -218,16 +219,23 @@ class DetailExpenseDialog(QDialog):
     def add_row(self):
         row_count = self.table.rowCount()
         self.table.insertRow(row_count)
-        self.table.setItem(row_count, 0, QTableWidgetItem(""))
+        self.table.setItem(row_count, 0, QTableWidgetItem("")) # 项目名称
         combo = QComboBox()
         combo.addItems(["收入", "支出"])
-        self.table.setCellWidget(row_count, 1, combo)
-        self.table.setItem(row_count, 2, QTableWidgetItem("0"))
+        self.table.setCellWidget(row_count, 1, combo) # 类型
+        self.table.setItem(row_count, 2, QTableWidgetItem("0")) # 金额
 
     def update_total(self):
         total = 0
         for row in range(self.table.rowCount()):
-            amount = float(self.table.item(row, 2).text() or 0)
+            amount_item = self.table.item(row, 2)
+            if amount_item is None or not amount_item.text():
+                amount = 0
+            else:
+                try:
+                    amount = float(amount_item.text())
+                except ValueError:
+                    amount = 0
             trans_type = self.table.cellWidget(row, 1).currentText()
             if trans_type == "收入":
                 total += amount
@@ -236,6 +244,7 @@ class DetailExpenseDialog(QDialog):
         self.total_label.setText(f"总金额：{total}元")
 
     def on_item_changed(self, item):
+        logging.info(f"Item changed: row={item.row()}, column={item.column()}, text={item.text()}")
         if item.column() == 2:  # 仅在金额列（第 2 列）发生变化时更新总金额
             self.update_total()
 
@@ -282,11 +291,14 @@ class MonthlyWindow(QMainWindow):
         self.month = month
         self.db = DatabaseManager()
         self.file_manager = FileManager()
+        # 记录初始列宽比例
+        self.column_width_ratios = [2, 3, 1, 1, 1, 1, 1, 1]  # 创建时间:项目名称:金额:类型:支付方式:详情:修改:删除
+        self.base_width = 100  # 基准宽度
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle(f'{self.year}年{self.month}月详情')
-        self.setMinimumSize(1700, 550)
+        self.setMinimumSize(1800, 550)
         self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))
 
         central_widget = QWidget()
@@ -298,6 +310,15 @@ class MonthlyWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["创建时间", "项目名称", "金额", "类型", "支付方式", "详情", "修改", "删除"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
 
+        # 设置初始列宽（临时值，避免挤在一起）
+        for col, ratio in enumerate(self.column_width_ratios):
+            self.table.setColumnWidth(col, int(self.base_width * ratio))
+
+        # 允许手动拖动调整列宽
+        header = self.table.horizontalHeader()
+        for col in range(self.table.columnCount()):
+            header.setSectionResizeMode(col, QHeaderView.Interactive)
+        
         button_layout = QHBoxLayout()
         create_button = QPushButton("创建")
         create_button.clicked.connect(self.show_create_dialog)
@@ -315,31 +336,76 @@ class MonthlyWindow(QMainWindow):
         self.table.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.table)
 
+        # 延迟调整列宽，确保布局完成
+        QTimer.singleShot(0, self.update_column_widths)
+
+    def update_column_widths(self):
+            total_width = self.table.viewport().width()
+            # 确保最小总宽度，防止列宽过窄
+            min_total_width = sum(ratio * self.base_width for ratio in self.column_width_ratios)
+            total_width = max(total_width, min_total_width)
+            
+            total_ratio = sum(self.column_width_ratios)
+            unit_width = total_width / total_ratio
+            for col, ratio in enumerate(self.column_width_ratios):
+                new_width = int(unit_width * ratio)
+                # 确保每列至少有最小宽度
+                new_width = max(new_width, 50)  # 最小宽度 50 像素
+                self.table.setColumnWidth(col, new_width)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 窗口大小变化时，按比例调整列宽
+        self.update_column_widths()
+
     def load_transactions(self):
         try:
             transactions = self.db.get_monthly_transactions(self.year, self.month)
             logging.info(f"Loaded {len(transactions)} transactions for {self.year}-{self.month}")
             for t in transactions:
                 logging.info(f"Transaction: {t}")
+            
+            # 按类型排序：收入在前，支出在后   
+            transactions = sorted(transactions, key=lambda x: (x[4] != "收入", x[1]))  # 按类型排序后，再按创建时间排序
+
             self.table.setRowCount(len(transactions))
             for row, (id, created_at, name, amount, trans_type, payment_method, stage, status, initial_amount) in enumerate(transactions):
                 created_at_dt = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
                 formatted_time = created_at_dt.strftime("%Y年%m月%d日%H时%M分")
-                self.table.setItem(row, 0, QTableWidgetItem(formatted_time))
+                # 创建时间居中
+                time_item = QTableWidgetItem(formatted_time)
+                time_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 0, time_item)
+
                 display_name = f"{name}（{stage}）" if stage else name
                 name_item = QTableWidgetItem(display_name)
                 if trans_type == "收入" and status == "已结项":
                     name_item.setBackground(QColor("lightgreen"))
-                self.table.setItem(row, 1, name_item)
-                self.table.setItem(row, 2, QTableWidgetItem(str(amount)))
-                self.table.setItem(row, 3, QTableWidgetItem(trans_type))
-                self.table.setItem(row, 4, QTableWidgetItem(payment_method))
+                # 项目名称居中
+                name_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 1, name_item)    
+                
+                # 金额居中
+                amount_item = QTableWidgetItem(str(amount))
+                amount_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 2, amount_item)
+                # 类型居中
+                type_item = QTableWidgetItem(trans_type)
+                type_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 3, type_item)
+                # 支付方式居中
+                payment_item = QTableWidgetItem(payment_method)
+                payment_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 4, payment_item)
+
                 detail_button = QPushButton("详情")
                 detail_button.clicked.connect(lambda checked, r=row: self.show_detail_dialog(r))
                 self.table.setCellWidget(row, 5, detail_button)
+
                 edit_button = QPushButton("修改")
                 edit_button.clicked.connect(lambda checked, r=row: self.edit_transaction(r))
                 self.table.setCellWidget(row, 6, edit_button)
+
                 delete_button = QPushButton("删除")
                 delete_button.clicked.connect(lambda checked, r=row: self.delete_transaction(r))
                 self.table.setCellWidget(row, 7, delete_button)
@@ -547,54 +613,79 @@ class MonthlyWindow(QMainWindow):
         if transaction_year > current_year or (transaction_year == current_year and transaction_month > current_month):
             QMessageBox.warning(self, "错误", f"不能为未来的月份创建收支记录！当前日期：{current_year}年{current_month}月")
             return
+        # 获取所有年份
         all_years = self.db.get_years()
         years = [year for year in all_years if int(year) <= current_year]
         if not years:
             QMessageBox.warning(self, "错误", "数据库中没有年份记录，请先创建年份！")
             return
+        # 选择年份
         selected_year, ok = QInputDialog.getItem(self, "选择年份", "请选择项目所属年份：", years, 0, False)
         if not ok:
             return
-        projects = self.db.get_projects_by_year(selected_year)
-        current_window_month = int(self.month)
-        filtered_projects = [p for p in projects if p[2] is not None and p[2] <= current_window_month]
-        if not filtered_projects:
-            QMessageBox.warning(self, "错误", f"{selected_year} 年没有创建月份在 {current_window_month} 月及之前的项目！")
+        
+        # 获取指定年份的非阶段性收入项目
+        conn = self.db.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT p.id, p.name, p.month
+            FROM projects p
+            JOIN transactions t ON p.id = t.project_id
+            WHERE p.year_id = (SELECT id FROM years WHERE year = ?)
+            AND t.type = '收入'
+            AND t.stage IS NULL
+        """, (selected_year,))
+        projects = cursor.fetchall()
+        conn.close()
+
+        if not projects:
+            QMessageBox.warning(self, "错误", f"{selected_year} 年没有非阶段性的收入类型项目！")
             return
-        project_names = [p[1] for p in filtered_projects]
-        project_ids = {p[1]: p[0] for p in filtered_projects}
-        project_months = {p[1]: p[2] for p in filtered_projects}
-        project_name, ok = QInputDialog.getItem(self, "选择项目", "请选择已有项目：", project_names, 0, False)
+        project_names = [p[1] for p in projects]
+        project_ids = {p[1]: p[0] for p in projects}
+        project_months = {p[1]: p[2] for p in projects}  # 保存项目的创建月份
+
+        # 选择项目
+        project_name, ok = QInputDialog.getItem(self, "选择项目", "请选择已有收入项目（非阶段性）：", project_names, 0, False)
         if not ok:
             return
         project_id = project_ids[project_name]
-        project_month = project_months[project_name]
+        project_month = project_months[project_name]  # 获取项目的创建月份
         if project_month is None:
             QMessageBox.critical(self, "错误", f"项目 {project_name} 的创建月份未定义，请联系管理员检查数据库！")
             return
+
+        # 选择阶段
         stages = ["第二阶段", "第三阶段", "第四阶段"]
         stage, ok = QInputDialog.getItem(self, "选择阶段", "请选择项目阶段：", stages, 0, False)
         if not ok:
             return
+        
+        # 输入金额
         amount, ok = QInputDialog.getDouble(self, "输入金额", "请输入金额（正数）：", value=0.0, min=0.01, max=9999999.99, decimals=2)
         if not ok:
             return
+        # 选择类型
         trans_type, ok = QInputDialog.getItem(self, "选择类型", "请选择收支类型：", ["收入", "支出"], 0, False)
         if not ok:
             return
+        # 选择支付方式
         payment_method, ok = QInputDialog.getItem(self, "选择支付方式", "请选择支付方式：",
                                                   ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
         if not ok:
             return
+        # 确认创建
         confirm_msg = f"项目名称: {project_name}\n阶段: {stage}\n金额: {amount}\n类型: {trans_type}\n支付方式: {payment_method}"
         reply = QMessageBox.question(self, "确认创建", confirm_msg, QMessageBox.Ok | QMessageBox.Cancel)
         if reply != QMessageBox.Ok:
             return
+        # 保存交易记录
         success = self.db.add_transaction(project_id, amount, trans_type, payment_method, self.month, self.year, stage)
         if success:
-            shortcut_success, result = self.file_manager.create_shortcut(self.year, self.month, project_name, stage, selected_year, project_month)
-            if not shortcut_success:
-                QMessageBox.warning(self, "提示", f"快捷方式创建失败: {result}")
+            if trans_type == "收入":  # 如果是收入类型，创建快捷方式
+                shortcut_success, result = self.file_manager.create_shortcut(self.year, self.month, project_name, stage, selected_year, project_month)
+                if not shortcut_success:
+                    QMessageBox.warning(self, "提示", f"快捷方式创建失败: {result}")
             QMessageBox.information(self, "成功", "收支记录创建成功！")
             self.load_transactions()
         else:
