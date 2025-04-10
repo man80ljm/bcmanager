@@ -66,7 +66,7 @@ class FileManager:
         try:
             # 确保快捷方式所在目录存在
             os.makedirs(base_path, exist_ok=True)
-
+            logging.info(f"Ensured base_path exists: {base_path}")
             # 检查原始项目目录是否存在
             if not os.path.exists(original_path):
                 logging.error(f"原始项目目录不存在: {original_path}")
@@ -187,4 +187,21 @@ class FileManager:
             return True, "快捷方式更新成功"
         except Exception as e:
             logging.error(f"更新快捷方式失败: {str(e)}")
+            return False, str(e)
+        
+    def delete_shortcut(self, year, month, project_name, stage):
+        """删除指定项目的快捷方式"""
+        base_path = os.path.join(self.base_dir, f"{year}年", f"{str(month).zfill(2)}月")
+        shortcut_name = f"{project_name}（{stage}）.lnk"
+        shortcut_path = os.path.join(base_path, shortcut_name)
+        try:
+            if os.path.exists(shortcut_path):
+                os.remove(shortcut_path)
+                logging.info(f"快捷方式删除成功: {shortcut_path}")
+                return True, f"快捷方式删除成功: {shortcut_path}"
+            else:
+                logging.info(f"快捷方式不存在，无需删除: {shortcut_path}")
+                return True, f"快捷方式不存在: {shortcut_path}"
+        except Exception as e:
+            logging.error(f"删除快捷方式失败: {str(e)}")
             return False, str(e)

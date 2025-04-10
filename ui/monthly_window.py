@@ -567,12 +567,13 @@ class MonthlyWindow(QMainWindow):
             dialog = EditTransactionDialog(transaction, self.db, parent=self)
             if dialog.exec_():
                 updated_data = dialog.get_updated_data()
-                success = self.db.update_transaction(
-                    updated_data["id"],
-                    updated_data["amount"],
-                    updated_data["type"],
-                    updated_data["payment_method"]
+                result = self.db.update_transaction(
+                    updated_data["id"], updated_data["amount"], updated_data["type"], updated_data["payment_method"]
                 )
+                if len(result) != 4:
+                    QMessageBox.warning(self, "错误", "更新收支记录失败：返回值格式错误")
+                    return
+                success, old_type, new_type, stage = result
                 # 比较名称时，确保去掉阶段信息
                 stage = transaction[6]
                 old_name_clean = old_project_name
@@ -590,6 +591,7 @@ class MonthlyWindow(QMainWindow):
                     cursor.execute("SELECT year FROM years WHERE id = ?", (year_id,))
                     project_year = cursor.fetchone()[0]
                     conn.close()
+                    
                     success = self.db.update_project_name(project_id, updated_data["name"])
                     if success:
                         rename_success, result = self.file_manager.rename_project_folder(
@@ -604,6 +606,48 @@ class MonthlyWindow(QMainWindow):
                             if not update_success:
                                 QMessageBox.warning(self, "警告", f"快捷方式更新失败: {update_result}")
                 if success:
+                    # 处理文件夹/快捷方式的增删
+                    if old_type == "收入" and new_type == "支出":
+                        if stage:  # 阶段性项目，删除快捷方式
+                            shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
+                                self.year, self.month, old_project_name, stage
+                            )
+                            if not shortcut_success:
+                                QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
+                        else:  # 新项目，删除项目文件夹
+                            # 假设项目是该月份的唯一记录
+                            delete_success, delete_result = self.file_manager.delete_project_folder(
+                                self.year, self.month, old_project_name, is_only_project_in_month=True
+                            )
+                            if not delete_success:
+                                QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {delete_result}")
+                    elif old_type == "支出" and new_type == "收入":
+                        if stage:  # 阶段性项目，创建快捷方式
+                            # 获取原始项目的年份和月份
+                            conn = self.db.connect()
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                SELECT p.year_id, p.month 
+                                FROM transactions t 
+                                JOIN projects p ON t.project_id = p.id 
+                                WHERE t.id = ?
+                            """, (updated_data["id"],))
+                            year_id, original_month = cursor.fetchone()
+                            cursor.execute("SELECT year FROM years WHERE id = ?", (year_id,))
+                            original_year = cursor.fetchone()[0]
+                            conn.close()
+                            shortcut_success, shortcut_result = self.file_manager.create_shortcut(
+                                self.year, self.month, updated_data["name"], stage, original_year, original_month
+                            )
+                            if not shortcut_success:
+                                QMessageBox.warning(self, "提示", f"快捷方式创建失败: {shortcut_result}")
+                        else:  # 新项目，创建项目文件夹
+                            folder_success, folder_result = self.file_manager.create_project_folder(
+                                self.year, self.month, updated_data["name"]
+                            )
+                            if not folder_success:
+                                QMessageBox.warning(self, "失败", f"创建文件夹失败: {folder_result}")
+
                     QMessageBox.information(self, "成功", "收支记录修改成功！")
                     self.load_transactions()
                 else:
@@ -614,7 +658,7 @@ class MonthlyWindow(QMainWindow):
             conn = self.db.connect()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT t.id, p.name
+                SELECT t.id, p.name, t.stage
                 FROM transactions t
                 LEFT JOIN projects p ON t.project_id = p.id
                 WHERE t.id = ?
@@ -626,7 +670,7 @@ class MonthlyWindow(QMainWindow):
                 QMessageBox.warning(self, "错误", "交易记录不存在！")
                 return
 
-            project_name = transaction[1]
+            transaction_id, project_name, stage, trans_type = transaction
             reply = QMessageBox.question(
                 self, "确认删除",
                 f"确定要删除项目 '{project_name}' 的这条收支记录吗？",
@@ -651,13 +695,37 @@ class MonthlyWindow(QMainWindow):
                 project_transactions = cursor.fetchone()[0]
                 conn.close()
                 is_only_project_in_month = (project_transactions == 1 and total_transactions == 1)
+                # 删除数据库记录
                 success = self.db.delete_transaction(transaction_id)
                 if success:
-                    delete_success, result = self.file_manager.delete_project_folder(
-                        self.year, self.month, project_name, is_only_project_in_month
-                    )
-                    if not delete_success:
-                        QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
+                    # 根据类型和阶段决定是否删除文件夹/快捷方式
+                    if trans_type == "收入":
+                        if stage:  # 阶段性项目，删除快捷方式
+                            shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
+                                self.year, self.month, project_name, stage
+                            )
+                            if not shortcut_success:
+                                QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
+                        else:  # 新项目，删除项目文件夹
+                            delete_success, result = self.file_manager.delete_project_folder(
+                                self.year, self.month, project_name, is_only_project_in_month
+                            )
+                            if not delete_success:
+                                QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
+                    else:  # 支出项目，理论上没有文件夹，但仍检查并清理
+                        if stage:  # 阶段性项目，检查并删除可能的快捷方式
+                            shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
+                                self.year, self.month, project_name, stage
+                            )
+                            if not shortcut_success:
+                                QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
+                        else:  # 新项目，检查并删除可能的项目文件夹
+                            delete_success, result = self.file_manager.delete_project_folder(
+                                self.year, self.month, project_name, is_only_project_in_month
+                            )
+                            if not delete_success:
+                                QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
+
                     QMessageBox.information(self, "成功", "收支记录删除成功！")
                     self.load_transactions()
                 else:
@@ -736,12 +804,12 @@ class MonthlyWindow(QMainWindow):
             month_int = int(self.month)
             success = self.db.add_transaction(project_id, amount, trans_type, payment_method, month_int, year_int)
             if success:
-                folder_success, result = self.file_manager.create_project_folder(self.year, self.month, project_name)
-                if not folder_success:
-                    QMessageBox.warning(self, "失败", f"创建文件夹失败: {result}")
-                else:
-                    QMessageBox.information(self, "成功", "收支记录创建成功！")
-                    self.load_transactions()
+                if trans_type == "收入":  # 仅收入项目创建文件夹
+                    folder_success, result = self.file_manager.create_project_folder(self.year, self.month, project_name)
+                    if not folder_success:
+                        QMessageBox.warning(self, "失败", f"创建文件夹失败: {result}")
+                QMessageBox.information(self, "成功", "收支记录创建成功！")
+                self.load_transactions()
             else:
                 QMessageBox.warning(self, "失败", "保存收支记录失败！")
         else:
@@ -830,7 +898,7 @@ class MonthlyWindow(QMainWindow):
                 if not shortcut_success:
                     QMessageBox.warning(self, "提示", f"快捷方式创建失败: {result}")
             QMessageBox.information(self, "成功", "收支记录创建成功！")
-            self.load_transactions()
+            QTimer.singleShot(0, self.load_transactions)  # 延迟刷新
         else:
             QMessageBox.warning(self, "失败", "保存收支记录失败！")
 

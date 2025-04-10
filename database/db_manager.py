@@ -305,7 +305,7 @@ class DatabaseManager:
         try:
             # 获取当前类型和详情总金额
             cursor.execute("SELECT type FROM transactions WHERE id = ?", (transaction_id,))
-            old_type = cursor.fetchone()[0]
+            old_type, stage = cursor.fetchone()
             
             # 更新初始金额、类型和支付方式
             cursor.execute("""
@@ -330,30 +330,49 @@ class DatabaseManager:
             cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
             
             conn.commit()
-            return True
+            return True, old_type, trans_type, stage  # 返回旧类型、新类型和阶段
         except Exception as e:
             print(f"更新收支记录失败: {str(e)}")
-            return False
+            return False, None, None, None
         finally:
             conn.close()
 
-    def update_transaction_status(self, transaction_id, status):
-            """更新收支记录的状态"""
-            conn = self.connect()
-            cursor = conn.cursor()
-            try:
-                cursor.execute("""
-                    UPDATE transactions
-                    SET status = ?
-                    WHERE id = ?
-                """, (status, transaction_id))
-                conn.commit()
-                return True
-            except Exception as e:
-                print(f"更新状态失败: {str(e)}")
-                return False
-            finally:
-                conn.close()
+    def update_transaction(self, transaction_id, amount, trans_type, payment_method):
+        conn = self.connect()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT type, stage FROM transactions WHERE id = ?", (transaction_id,))
+            result = cursor.fetchone()
+            if result is None:
+                raise ValueError(f"Transaction with id {transaction_id} not found")
+            old_type, stage = result
+            
+            cursor.execute("""
+                UPDATE transactions
+                SET initial_amount = ?, type = ?, payment_method = ?
+                WHERE id = ?
+            """, (amount, trans_type, payment_method, transaction_id))
+            
+            if old_type != trans_type:
+                if old_type == "收入":
+                    cursor.execute("DELETE FROM remarks WHERE transaction_id = ?", (transaction_id,))
+                else:
+                    cursor.execute("DELETE FROM expense_details WHERE transaction_id = ?", (transaction_id,))
+            
+            if trans_type == "支出":
+                details_total = self.get_expense_details_total(transaction_id)
+                new_amount = amount + details_total
+            else:
+                new_amount = amount
+            cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
+            
+            conn.commit()
+            return True, old_type, trans_type, stage
+        except Exception as e:
+            logging.error(f"更新收支记录失败: {str(e)}")
+            return False, None, None, None
+        finally:
+            conn.close()
 
     def update_project_name(self, project_id, name):
         """更新项目的名称"""
