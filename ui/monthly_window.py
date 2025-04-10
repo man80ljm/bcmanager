@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
                              QMenu, QInputDialog, QComboBox, QMessageBox, QHBoxLayout, QDialog, QTextEdit,
-                             QTableWidgetItem, QHeaderView,QApplication, QLineEdit,QAction)
+                             QTableWidgetItem, QHeaderView,QApplication, QLineEdit,QAction, QCheckBox,)
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt,QTimer
 from database.db_manager import DatabaseManager
@@ -367,6 +367,121 @@ class EditTransactionDialog(QDialog):
             "name": name  # 使用去掉阶段信息的名称
         }
 
+class FilterDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("筛选")
+        self.setFixedSize(500, 400)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)  # 去掉疑问号
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        # 状态筛选
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(QLabel("未结算"))
+        self.status_unsettled = QCheckBox()
+        status_layout.addWidget(self.status_unsettled)
+        status_layout.addWidget(QLabel("已结算"))
+        self.status_settled = QCheckBox()
+        status_layout.addWidget(self.status_settled)
+        layout.addLayout(status_layout)
+
+        # 阶段筛选
+        stage_layout = QHBoxLayout()
+        self.stage_combo = QComboBox()
+        self.stage_combo.addItems(["", "第二阶段", "第三阶段", "第四阶段"])
+        stage_layout.addWidget(QLabel("阶段"))
+        stage_layout.addWidget(self.stage_combo)
+        layout.addLayout(stage_layout)
+
+        # 类型筛选
+        type_layout = QHBoxLayout()
+        type_layout.addWidget(QLabel("收入"))
+        self.type_income = QCheckBox()
+        type_layout.addWidget(self.type_income)
+        type_layout.addWidget(QLabel("支出"))
+        self.type_expense = QCheckBox()
+        type_layout.addWidget(self.type_expense)
+        layout.addLayout(type_layout)
+
+        # 支付方式筛选
+        payment_layout = QHBoxLayout()
+        self.payment_combo = QComboBox()
+        self.payment_combo.addItems(["", "微信", "支付宝", "对公账户", "对私账户", "现金"])
+        payment_layout.addWidget(QLabel("支付方式"))
+        payment_layout.addWidget(self.payment_combo)
+        layout.addLayout(payment_layout)
+
+        # 金额筛选
+        amount_layout = QHBoxLayout()
+        self.amount_min = QLineEdit()
+        self.amount_max = QLineEdit()
+        amount_layout.addWidget(QLabel("现金额"))
+        amount_layout.addWidget(self.amount_min)
+        amount_layout.addWidget(QLabel("至"))
+        amount_layout.addWidget(self.amount_max)
+        layout.addLayout(amount_layout)
+
+        # 按钮
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("CANCEL")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+    def get_filters(self):
+        filters = {}
+        # 状态
+        statuses = []
+        if self.status_unsettled.isChecked():
+            statuses.append("未结项")
+        if self.status_settled.isChecked():
+            statuses.append("已结项")
+        if statuses:
+            filters["status"] = statuses
+
+        # 阶段
+        stage = self.stage_combo.currentText()
+        if stage:
+            filters["stage"] = stage
+
+        # 类型
+        types = []
+        if self.type_income.isChecked():
+            types.append("收入")
+        if self.type_expense.isChecked():
+            types.append("支出")
+        if types:
+            filters["type"] = types
+
+        # 支付方式
+        payment_method = self.payment_combo.currentText()
+        if payment_method:
+            filters["payment_method"] = payment_method
+
+        # 金额范围
+        amount_min = self.amount_min.text()
+        amount_max = self.amount_max.text()
+        if amount_min:
+            try:
+                filters["amount_min"] = float(amount_min)
+            except ValueError:
+                pass
+        if amount_max:
+            try:
+                filters["amount_max"] = float(amount_max)
+            except ValueError:
+                pass
+
+        return filters
+
 class MonthlyWindow(QMainWindow):
     def __init__(self, year, month, parent=None):
             super().__init__(parent)
@@ -374,6 +489,12 @@ class MonthlyWindow(QMainWindow):
             self.month = month
             self.db = DatabaseManager()
             self.file_manager = FileManager()
+            # 缓存 year_id
+            conn = self.db.connect()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM years WHERE year = ?", (self.year,))
+            self.year_id = cursor.fetchone()[0]
+            conn.close()
             # 记录初始列宽比例
             self.column_width_ratios = [2, 3, 1, 1, 1, 1, 1, 1]  # 创建时间:项目名称:金额:类型:支付方式:详情:修改:删除
             self.base_width = 100  # 基准宽度
@@ -406,6 +527,7 @@ class MonthlyWindow(QMainWindow):
             create_button = QPushButton("创建")
             create_button.clicked.connect(self.show_create_dialog)
             filter_button = QPushButton("筛选")
+            filter_button.clicked.connect(self.show_filter_dialog)  # 添加这一行绑定筛选按钮
             button_layout.addWidget(create_button)
             button_layout.addWidget(filter_button)
             layout.addLayout(button_layout)
@@ -421,6 +543,19 @@ class MonthlyWindow(QMainWindow):
 
             # 延迟调整列宽，确保布局完成
             QTimer.singleShot(0, self.update_column_widths)
+
+    def show_filter_dialog(self):
+        logging.info("Showing filter dialog")  # 添加日志
+        dialog = FilterDialog(self)
+        if dialog.exec_():
+            filters = dialog.get_filters()
+            logging.info(f"Filters applied: {filters}")  # 添加日志
+            self.apply_filters(filters)
+
+    def apply_filters(self, filters):
+        logging.info("Applying filters")  # 添加日志
+        self.filters = filters  # 保存筛选条件
+        self.load_transactions()  # 重新加载表格
 
     def update_column_widths(self):
             total_width = self.table.viewport().width()
@@ -443,14 +578,51 @@ class MonthlyWindow(QMainWindow):
 
     def load_transactions(self):
             try:
-                transactions = self.db.get_monthly_transactions(self.year, self.month)
-                logging.info(f"Loaded {len(transactions)} transactions for {self.year}-{self.month}")
-                for t in transactions:
-                    logging.info(f"Transaction: {t}")
+                # 构建动态查询
+                query = """
+                    SELECT t.id, t.created_at, p.name, t.amount, t.type, t.payment_method, t.stage, t.status, t.initial_amount
+                    FROM transactions t
+                    LEFT JOIN projects p ON t.project_id = p.id
+                    WHERE t.year_id = (SELECT id FROM years WHERE year = ?) AND t.month = ?
+                """
+                params = [self.year, self.month]
+
+                # 添加筛选条件
+                conditions = []
+                if hasattr(self, 'filters'):
+                    if "status" in self.filters:
+                        conditions.append("t.status IN ({})".format(",".join("?" for _ in self.filters["status"])))
+                        params.extend(self.filters["status"])
+                    if "stage" in self.filters:
+                        conditions.append("t.stage = ?")
+                        params.append(self.filters["stage"])
+                    if "type" in self.filters:
+                        conditions.append("t.type IN ({})".format(",".join("?" for _ in self.filters["type"])))
+                        params.extend(self.filters["type"])
+                    if "payment_method" in self.filters:
+                        conditions.append("t.payment_method = ?")
+                        params.append(self.filters["payment_method"])
+                    if "amount_min" in self.filters:
+                        conditions.append("t.amount >= ?")
+                        params.append(self.filters["amount_min"])
+                    if "amount_max" in self.filters:
+                        conditions.append("t.amount <= ?")
+                        params.append(self.filters["amount_max"])
+
+                if conditions:
+                    query += " AND " + " AND ".join(conditions)
+
+                # 执行查询
+                conn = self.db.connect()
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                transactions = cursor.fetchall()
+                conn.close()
                 
                 # 按类型排序：收入在前，支出在后
                 transactions = sorted(transactions, key=lambda x: (x[4] != "收入", x[1]))  # 按类型排序后，再按创建时间排序
-
+                
+                # 更新表格
                 self.table.setRowCount(len(transactions))
                 for row, (id, created_at, name, amount, trans_type, payment_method, stage, status, initial_amount) in enumerate(transactions):
                     created_at_dt = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
@@ -905,6 +1077,7 @@ class MonthlyWindow(QMainWindow):
     def closeEvent(self, event):
         self.deleteLater()
         super().closeEvent(event)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
