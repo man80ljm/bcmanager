@@ -71,6 +71,11 @@ class FileManager:
             if not os.path.exists(original_path):
                 logging.error(f"原始项目目录不存在: {original_path}")
                 return False, f"原始项目目录不存在: {original_path}"
+            
+            # 如果快捷方式已存在，记录日志但不中断
+            if os.path.exists(shortcut_path):
+                logging.warning(f"快捷方式已存在: {shortcut_path}，跳过创建")
+                return True, f"快捷方式已存在: {shortcut_path}"
 
             if os.name == 'nt':  # Windows
                 import win32com.client

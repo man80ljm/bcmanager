@@ -73,6 +73,10 @@ class DatabaseManager:
                 # 将现有记录的 amount 复制到 initial_amount
                 cursor.execute("UPDATE transactions SET initial_amount = amount")
                 print("transactions 表结构升级完成！")
+            if 'stage' not in columns:  # 新增对 stage 列的检查
+                print("transactions 表缺少 stage 列，正在升级表结构...")
+                cursor.execute("ALTER TABLE transactions ADD COLUMN stage TEXT")
+                print("transactions 表结构升级完成！")
 
         # 检查 remarks 表是否存在，并确保 transaction_id 有 UNIQUE 约束
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='remarks'")
@@ -165,6 +169,15 @@ class DatabaseManager:
             if not year_row:
                 raise ValueError(f"年份 {year} 不存在")
             year_id = year_row[0]
+            # 检查是否已经存在相同 project_id、year、month 和 stage 的记录
+            cursor.execute("""
+                SELECT id FROM transactions 
+                WHERE project_id = ? AND year_id = ? AND month = ? AND stage = ?
+            """, (project_id, year_id, month, stage))
+            existing_transaction = cursor.fetchone()
+            if existing_transaction:
+                raise ValueError(f"该项目在 {year} 年 {month} 月已存在 {stage} 的记录，请选择其他阶段！")
+            
             print(f"插入收支记录: project_id={project_id}, amount={amount}, type={trans_type}, payment_method={payment_method}, stage={stage}, month={month}, year_id={year_id}")
             cursor.execute("""
                 INSERT INTO transactions (project_id, amount, initial_amount, type, payment_method, stage, month, year_id, created_at)
@@ -299,20 +312,26 @@ class DatabaseManager:
         total_expense = result[1] or 0
         return total_income, total_expense, total_income - total_expense
 
-    def update_transaction(self, transaction_id, amount, trans_type, payment_method):
+    def update_transaction(self, transaction_id, amount, trans_type, payment_method, stage=None):
         conn = self.connect()
         cursor = conn.cursor()
         try:
-            # 获取当前类型和详情总金额
-            cursor.execute("SELECT type FROM transactions WHERE id = ?", (transaction_id,))
-            old_type, stage = cursor.fetchone()
+            # 获取当前类型和阶段
+            cursor.execute("SELECT type, stage FROM transactions WHERE id = ?", (transaction_id,))
+            result = cursor.fetchone()
+            if result is None:
+                raise ValueError(f"Transaction with id {transaction_id} not found")
+            old_type, old_stage = result
             
-            # 更新初始金额、类型和支付方式
+            # 打印参数以调试
+            logging.info(f"Updating transaction with: transaction_id={transaction_id}, amount={amount}, trans_type={trans_type}, payment_method={payment_method}, stage={stage}")
+            
+            # 更新初始金额、类型、支付方式和阶段
             cursor.execute("""
                 UPDATE transactions
-                SET initial_amount = ?, type = ?, payment_method = ?
+                SET initial_amount = ?, type = ?, payment_method = ?, stage = ?
                 WHERE id = ?
-            """, (amount, trans_type, payment_method, transaction_id))
+            """, (amount, trans_type, payment_method, stage, transaction_id))
             
             # 类型变化时清理旧数据
             if old_type != trans_type:
@@ -324,50 +343,14 @@ class DatabaseManager:
             # 更新 amount：如果是支出类型，累加 expense_details 的总和
             if trans_type == "支出":
                 details_total = self.get_expense_details_total(transaction_id)
-                new_amount = amount + details_total # 使用用户输入的新金额加上详情总和
-            else:
-                new_amount = amount  # 收入类型没有详情金额，直接使用 initial_amount
-            cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
-            
-            conn.commit()
-            return True, old_type, trans_type, stage  # 返回旧类型、新类型和阶段
-        except Exception as e:
-            print(f"更新收支记录失败: {str(e)}")
-            return False, None, None, None
-        finally:
-            conn.close()
-
-    def update_transaction(self, transaction_id, amount, trans_type, payment_method):
-        conn = self.connect()
-        cursor = conn.cursor()
-        try:
-            cursor.execute("SELECT type, stage FROM transactions WHERE id = ?", (transaction_id,))
-            result = cursor.fetchone()
-            if result is None:
-                raise ValueError(f"Transaction with id {transaction_id} not found")
-            old_type, stage = result
-            
-            cursor.execute("""
-                UPDATE transactions
-                SET initial_amount = ?, type = ?, payment_method = ?
-                WHERE id = ?
-            """, (amount, trans_type, payment_method, transaction_id))
-            
-            if old_type != trans_type:
-                if old_type == "收入":
-                    cursor.execute("DELETE FROM remarks WHERE transaction_id = ?", (transaction_id,))
-                else:
-                    cursor.execute("DELETE FROM expense_details WHERE transaction_id = ?", (transaction_id,))
-            
-            if trans_type == "支出":
-                details_total = self.get_expense_details_total(transaction_id)
                 new_amount = amount + details_total
             else:
                 new_amount = amount
             cursor.execute("UPDATE transactions SET amount = ? WHERE id = ?", (new_amount, transaction_id))
             
             conn.commit()
-            return True, old_type, trans_type, stage
+            logging.info(f"Transaction {transaction_id} updated successfully")
+            return True, old_type, trans_type, old_stage
         except Exception as e:
             logging.error(f"更新收支记录失败: {str(e)}")
             return False, None, None, None
@@ -442,6 +425,36 @@ class DatabaseManager:
             return False, None
         finally:
             conn.close()
+
+    def update_transaction_status(self, transaction_id, status):
+        """更新交易记录的状态"""
+        conn = self.connect()
+        cursor = conn.cursor()
+        try:
+            # 验证状态值是否合法
+            if status not in ("未结项", "已结项"):
+                raise ValueError(f"无效的状态值: {status}，必须是 '未结项' 或 '已结项'")
+            
+            # 更新状态
+            cursor.execute("""
+                UPDATE transactions
+                SET status = ?
+                WHERE id = ?
+            """, (status, transaction_id))
+            
+            # 检查是否成功更新
+            if cursor.rowcount == 0:
+                raise ValueError(f"Transaction with id {transaction_id} not found")
+            
+            conn.commit()
+            logging.info(f"Transaction {transaction_id} status updated to {status}")
+            return True
+        except Exception as e:
+            logging.error(f"更新交易状态失败: transaction_id={transaction_id}, status={status}, error={str(e)}")
+            return False
+        finally:
+            conn.close()
+
 # 测试代码
 if __name__ == '__main__':
     db = DatabaseManager()
