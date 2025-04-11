@@ -1,4 +1,6 @@
 import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout,QGridLayout, QPushButton, QLabel,
                              QDialog, QLineEdit, QMessageBox,QScrollArea,
@@ -7,12 +9,14 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from database.db_manager import DatabaseManager  # 使用相对路径导入
 from utils.file_manager import FileManager  # 导入 FileManager
+from utils.export_excel import ExcelExporter  # 直接从 utils 导入
 
 class YearWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.db = DatabaseManager()  # 初始化数据库管理器
         self.file_manager = FileManager()  # 初始化 FileManager
+        self.exporter = ExcelExporter(self.db)  # 初始化 ExcelExporter
         self.initUI()
     
     def initUI(self):
@@ -127,6 +131,8 @@ class YearWindow(QMainWindow):
 
         # 底部按钮布局
         bottom_button_layout = QHBoxLayout()
+        bottom_button_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_button_layout.setSpacing(5)
         
         # 备份按钮
         self.backup_button = QPushButton("备份")
@@ -143,6 +149,22 @@ class YearWindow(QMainWindow):
             }
         """)
         self.backup_button.clicked.connect(self.backup_database)  # 绑定备份事件
+
+        # 添加导出按钮
+        self.export_button = QPushButton("导出")
+        self.export_button.setFixedWidth(button_width)
+        self.export_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d3d3d3; 
+                padding: 5px;
+                border-radius: 3px;
+                font-size: 20px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+        self.export_button.clicked.connect(self.export_data)
 
         # 恢复按钮
         self.restore_button = QPushButton("恢复")
@@ -161,11 +183,57 @@ class YearWindow(QMainWindow):
         self.restore_button.clicked.connect(self.restore_database)  # 绑定恢复事件
         # 添加弹簧使按钮分开
         bottom_button_layout.addWidget(self.backup_button)
-        bottom_button_layout.addStretch()
+        bottom_button_layout.addStretch()  # 弹簧，让“导出”居中
+        bottom_button_layout.addWidget(self.export_button)  # 添加导出按钮
+        bottom_button_layout.addStretch()  # 弹簧，让“恢复”靠右
         bottom_button_layout.addWidget(self.restore_button)
+        
         main_layout.addLayout(bottom_button_layout)
 
         self.load_years()
+
+    def export_data(self):
+        """弹出对话框选择年份并导出数据"""
+        self.export_button.setEnabled(False)
+
+        # 获取所有年份
+        years = self.db.get_years()
+        if not years:
+            QMessageBox.warning(self, "无数据", "数据库中没有年份数据可导出！")
+            self.export_button.setEnabled(True)
+            return
+
+        # 弹出选择年份的对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle("选择导出年份")
+        dialog.setFixedSize(600, 300)
+        dialog.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        layout = QVBoxLayout()
+        label = QLabel("请选择要导出的年份：")
+        layout.addWidget(label)
+
+        combo = QComboBox()
+        combo.addItems(years)
+        layout.addWidget(combo)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec_():
+            selected_year = combo.currentText()
+            # 调用导出方法
+            success = self.exporter.export_by_year(selected_year)
+            if success:
+                QMessageBox.information(self, "导出成功", f"{selected_year} 年的数据已导出到 exports/{selected_year}_transactions.xlsx")
+            else:
+                QMessageBox.warning(self, "无数据", f"{selected_year} 年没有数据可导出！")
+
+        self.export_button.setEnabled(True)
 
     def perform_search(self):
         """执行模糊搜索并显示结果"""
@@ -388,6 +456,8 @@ class CreateYearDialog(QDialog):
     def get_year(self):
         """获取用户输入的年份"""
         return self.year_input.text().strip()
+
+
 
 # 测试代码
 if __name__ == '__main__':
