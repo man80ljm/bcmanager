@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "BcManagerSetup", "BcManagerSetup.wixproj", "{2A3756FC-2609-4A62-BE1A-5E007E163462}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2A3756FC-2609-4A62-BE1A-5E007E163462}.Debug|x86.ActiveCfg = Debug|x86
+		{2A3756FC-2609-4A62-BE1A-5E007E163462}.Debug|x86.Build.0 = Debug|x86
+		{2A3756FC-2609-4A62-BE1A-5E007E163462}.Release|x86.ActiveCfg = Release|x86
+		{2A3756FC-2609-4A62-BE1A-5E007E163462}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -8,9 +8,9 @@ from database.db_manager import DatabaseManager  # 导入数据库管理类
 
 
 class LoginWindow(QWidget):
-    def __init__(self):
+    def __init__(self,db_manager): # 添加 db_manager 参数
         super().__init__()
-        self.db = DatabaseManager()  # 初始化数据库
+        self.db = db_manager  # 初始化数据库
         self.settings = QSettings("MyCompany", "MyApp")  # 初始化设置存储
         self.initUI()
         self.load_saved_credentials()  # 加载保存的凭证

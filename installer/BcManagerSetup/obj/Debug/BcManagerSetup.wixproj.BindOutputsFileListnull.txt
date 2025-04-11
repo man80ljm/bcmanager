@@ -1,0 +1,2 @@
+D:\bcmanager\installer\BcManagerSetup\bin\Debug\BcManagerSetup.msi
+D:\bcmanager\installer\BcManagerSetup\bin\Debug\BcManagerSetup.wixpdb

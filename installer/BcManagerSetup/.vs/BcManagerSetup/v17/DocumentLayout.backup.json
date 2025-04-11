@@ -1,0 +1,60 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\bcmanager\\installer\\BcManagerSetup\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{2A3756FC-2609-4A62-BE1A-5E007E163462}|BcManagerSetup.wixproj|D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.wxs||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{2A3756FC-2609-4A62-BE1A-5E007E163462}|BcManagerSetup.wixproj|solutionrelative:bcmanager.wxs||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2A3756FC-2609-4A62-BE1A-5E007E163462}|BcManagerSetup.wixproj|D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.exe||{177559E0-D141-11D0-92DF-00A0C9138C45}",
+      "RelativeMoniker": "D:0:0:{2A3756FC-2609-4A62-BE1A-5E007E163462}|BcManagerSetup.wixproj|solutionrelative:bcmanager.exe||{177559E0-D141-11D0-92DF-00A0C9138C45}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "bcmanager.wxs",
+              "DocumentMoniker": "D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.wxs",
+              "RelativeDocumentMoniker": "bcmanager.wxs",
+              "ToolTip": "D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.wxs",
+              "RelativeToolTip": "bcmanager.wxs",
+              "ViewState": "AgIAACgAAAAAAAAAAAAAwF4AAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-04-11T16:24:57.553Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "bcmanager.exe",
+              "DocumentMoniker": "D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.exe",
+              "RelativeDocumentMoniker": "bcmanager.exe",
+              "ToolTip": "D:\\bcmanager\\installer\\BcManagerSetup\\bcmanager.exe",
+              "RelativeToolTip": "bcmanager.exe",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000165|",
+              "WhenOpened": "2025-04-11T16:24:55.495Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

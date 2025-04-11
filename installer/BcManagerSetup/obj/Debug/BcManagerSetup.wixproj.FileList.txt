@@ -1,0 +1,6 @@
+obj\Debug\bcmanager.wixobj
+D:\bcmanager\installer\BcManagerSetup\bin\Debug\BcManagerSetup.msi
+D:\bcmanager\installer\BcManagerSetup\bin\Debug\BcManagerSetup.wixpdb
+obj\Debug\BcManagerSetup.wixproj.BindContentsFileListnull.txt
+obj\Debug\BcManagerSetup.wixproj.BindOutputsFileListnull.txt
+obj\Debug\BcManagerSetup.wixproj.BindBuiltOutputsFileListnull.txt

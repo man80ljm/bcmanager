@@ -4,13 +4,38 @@ import sqlite3
 import os
 from datetime import datetime
 import logging
+import sys  # 新增导入 sys 模块
 
 class DatabaseManager:
-    def __init__(self, db_path="project_accounting.db"):
-        self.db_path = db_path
+    def __init__(self, data_dir=None):
+        # 如果未指定 data_dir，默认使用用户目录下的 bcmanager 文件夹
+        if data_dir is None:
+            data_dir = os.path.expanduser("~") + "\\bcmanager"
+        # 确保数据目录存在
+        os.makedirs(data_dir, exist_ok=True)
+        # 设置数据库路径
+        self.db_path = os.path.join(data_dir, "project_accounting.db")
+        # 创建所需文件夹
+        self.project_dir = os.path.join(data_dir, "项目资料")
+        self.exports_dir = os.path.join(data_dir, "exports")
+        self.backup_dir = os.path.join(data_dir, "db_backup")
+        os.makedirs(self.project_dir, exist_ok=True)
+        os.makedirs(self.exports_dir, exist_ok=True)
+        os.makedirs(self.backup_dir, exist_ok=True)
+        # 初始化数据库
         self.init_database()
         self.verify_tables()
     
+    # 新增 resource_path 函数，放在类定义之前
+    def resource_path(self, relative_path):
+        """获取打包后资源文件的绝对路径"""
+        if hasattr(sys, '_MEIPASS'):
+            # 打包后，_MEIPASS 是临时解压目录
+            return os.path.join(sys._MEIPASS, relative_path)
+        else:
+            # 开发时，使用相对路径
+            return os.path.join(os.path.abspath("."), relative_path)
+
     def verify_tables(self):
         required_tables = ["users", "years", "projects", "transactions", "remarks", "expense_details"]
         conn = self.connect()
@@ -120,7 +145,8 @@ class DatabaseManager:
         expense_details_table_exists = cursor.fetchone() is not None
 
         # 读取 schema.sql 文件
-        with open("database/schema.sql", "r", encoding="utf-8") as f:
+        schema_path = self.resource_path("database/schema.sql")
+        with open(schema_path, "r", encoding="utf-8") as f:
             schema_lines = f.read().splitlines()
 
         # 动态过滤表定义

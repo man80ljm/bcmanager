@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="BcManager" Language="1033" Version="1.0.0.0" Manufacturer="YourCompany" UpgradeCode="123e4567-e89b-12d3-a456-426614174000" Codepage="65001">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <!-- 许可证 -->
+        <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+        <UIRef Id="WixUI_InstallDir" />
+
+        <!-- 数据目录属性 -->
+        <Property Id="DATADIR" Value="[LocalAppDataFolder]bcmanager" />
+
+        <!-- 目录结构 -->
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <!-- 程序安装目录 -->
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLDIR" Name="BcManager">
+                    <Component Id="MainExecutable" Guid="987fcdeb-51a2-34f5-b678-426614174001">
+                        <File Id="bcmanager_exe" Source="bcmanager.exe" KeyPath="yes" />
+                        <!-- 配置文件 -->
+                        <File Id="config_ini" Source="config.ini" />
+                        <!-- 桌面快捷方式 -->
+                        <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="BcManager" WorkingDirectory="INSTALLDIR" />
+                        <!-- 开始菜单快捷方式 -->
+                        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="BcManager" WorkingDirectory="INSTALLDIR" />
+                    </Component>
+                </Directory>
+            </Directory>
+            <!-- 开始菜单 -->
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="BcManager" />
+            </Directory>
+            <!-- 桌面 -->
+            <Directory Id="DesktopFolder" />
+            <!-- 数据目录 -->
+            <Directory Id="LocalAppDataFolder">
+                <Directory Id="DataDir" Name="bcmanager">
+                    <Directory Id="ProjectDir" Name="项目资料" />
+                    <Directory Id="ExportsDir" Name="exports" />
+                    <Directory Id="BackupDir" Name="db_backup" />
+                    <Component Id="DataDirComponent" Guid="456def12-78ab-90cd-e123-426614174002">
+                        <CreateFolder Directory="DataDir" />
+                        <CreateFolder Directory="ProjectDir" />
+                        <CreateFolder Directory="ExportsDir" />
+                        <CreateFolder Directory="BackupDir" />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id="MainFeature" Title="BcManager" Level="1">
+            <ComponentRef Id="MainExecutable" />
+            <ComponentRef Id="DataDirComponent" />
+        </Feature>
+
+        <!-- 自定义 UI -->
+        <UI>
+            <UIRef Id="WixUI_InstallDir" />
+        </UI>
+    </Product>
+
+    <!-- 自定义路径选择对话框 -->
+    <Fragment>
+        <UI Id="CustomInstallDirDialog">
+            <Dialog Id="InstallDirDialog" Width="370" Height="270" Title="安装路径选择">
+                <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="下一步" />
+                <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="上一步" />
+                <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="取消" />
+                <Control Id="InstallDirLabel" Type="Text" X="20" Y="60" Width="290" Height="30" NoPrefix="yes" Text="程序安装目录:" />
+                <Control Id="InstallDirEdit" Type="PathEdit" X="20" Y="90" Width="320" Height="18" Property="INSTALLDIR" Indirect="yes" />
+                <Control Id="DataDirLabel" Type="Text" X="20" Y="120" Width="290" Height="30" NoPrefix="yes" Text="数据存储目录:" />
+                <Control Id="DataDirEdit" Type="PathEdit" X="20" Y="150" Width="320" Height="18" Property="DATADIR" Indirect="yes" />
+            </Dialog>
+            <Publish Dialog="InstallDirDialog" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Order="2">1</Publish>
+            <Publish Dialog="InstallDirDialog" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">1</Publish>
+        </UI>
+    </Fragment>
+</Wix>
