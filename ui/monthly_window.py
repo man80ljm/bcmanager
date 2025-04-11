@@ -22,6 +22,7 @@ class DetailTextDialog(QDialog):
         self.file_manager = file_manager
         self.year = year
         self.month = month
+        self.base_dir = file_manager.base_dir  # 使用 FileManager 的 base_dir
         # 修改标题，包含项目名称
         project_name = self.transaction[2]  # 项目名称在 transaction 的第 3 个字段
         stage = self.transaction[6]  # stage 在 transaction 的第 7 个字段
@@ -57,16 +58,25 @@ class DetailTextDialog(QDialog):
     def open_project_folder(self):
         project_name = self.transaction[2]
         # stage = self.transaction[6]  # 阶段信息
-        folder_path = os.path.join("项目资料", f"{self.year}年", f"{str(self.month).zfill(2)}月", project_name)
+        folder_path = os.path.join(self.base_dir, f"{self.year}年", f"{str(self.month).zfill(2)}月", project_name)
         # 如果文件夹不存在，尝试查找快捷方式
         if not os.path.exists(folder_path):
             shortcut_path = None
-            base_path = os.path.join("项目资料", f"{self.year}年", f"{str(self.month).zfill(2)}月")
-            # 查找以 project_name 开头的快捷方式（可能包含阶段信息）
-            for item in os.listdir(base_path):
-                if item.startswith(project_name) and item.endswith(".lnk"):
-                    shortcut_path = os.path.join(base_path, item)
-                    break
+            base_path = os.path.join(self.base_dir, f"{self.year}年", f"{str(self.month).zfill(2)}月")
+            # 检查 base_path 是否存在
+            if not os.path.exists(base_path):
+                QMessageBox.warning(self, "错误", f"月份文件夹不存在：{base_path}")
+                return
+            # 查找以 project_name 开头的快捷方式
+            try:
+                for item in os.listdir(base_path):
+                    if item.startswith(project_name) and item.endswith(".lnk"):
+                        shortcut_path = os.path.join(base_path, item)
+                        break
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"无法访问月份文件夹：{str(e)}")
+                return
+            # 如果找到快捷方式，解析其目标路径
             if shortcut_path and os.path.exists(shortcut_path):
                 try:
                     if os.name == 'nt':
@@ -79,11 +89,15 @@ class DetailTextDialog(QDialog):
                 except Exception as e:
                     QMessageBox.warning(self, "错误", f"无法解析快捷方式：{str(e)}")
                     return
+        # 最后检查 folder_path 是否存在并打开
         if os.path.exists(folder_path):
-            if os.name == 'nt':
-                os.startfile(folder_path)
-            else:
-                os.system(f"open {folder_path}")
+            try:
+                if os.name == 'nt':
+                    os.startfile(folder_path)
+                else:
+                    os.system(f"open {folder_path}")
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"无法打开文件夹：{str(e)}")
         else:
             QMessageBox.warning(self, "错误", "项目文件夹不存在！")
 
