@@ -455,6 +455,26 @@ class DatabaseManager:
         finally:
             conn.close()
 
+    def search_income_projects(self, keyword):
+        """
+        模糊搜索收入项目，返回项目名、年份、月份
+        返回格式：[(project_id, project_name, year, month), ...]
+        """
+        conn = self.connect()
+        cursor = conn.cursor()
+        query = """
+            SELECT p.id, p.name, y.year, t.month
+            FROM transactions t
+            JOIN projects p ON t.project_id = p.id
+            JOIN years y ON t.year_id = y.id
+            WHERE t.type = '收入' AND p.name LIKE ?
+            ORDER BY y.year DESC, t.month DESC
+        """
+        cursor.execute(query, ('%' + keyword + '%',))
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    
 # 测试代码
 if __name__ == '__main__':
     db = DatabaseManager()

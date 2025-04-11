@@ -1141,8 +1141,6 @@ class MonthlyWindow(QMainWindow):
         self.deleteLater()
         super().closeEvent(event)
 
-
-
 class SearchableComboBoxDialog(QDialog):
     def __init__(self, items, title="选择项目", label="请输入项目名称进行筛选：", parent=None):
         super().__init__(parent)

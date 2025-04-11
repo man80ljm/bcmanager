@@ -25,12 +25,20 @@ class YearWindow(QMainWindow):
         # 创建中心部件和布局
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+
+        # 在这里添加，去掉 central_widget 的边距
+        central_widget.setContentsMargins(0, 0, 0, 0)
+
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)  # 统一设置主布局的边距
+        main_layout.setSpacing(10)  # 主布局的间距
 
         # 按钮宽度
         button_width = 120
         # 顶部按钮布局
         top_button_layout = QHBoxLayout()
+        top_button_layout.setContentsMargins(0, 0, 0, 0)  # 去掉顶部布局的边距
+        top_button_layout.setSpacing(5)  # 控件间距
 
         # 创建年份按钮
         self.create_button = QPushButton("创建年份")
@@ -48,10 +56,59 @@ class YearWindow(QMainWindow):
         """)
         self.create_button.clicked.connect(self.create_year)
         top_button_layout.addWidget(self.create_button)
+
+        # 创建子布局来放置搜索框和搜索按钮
+        search_widget = QWidget()
+        search_layout = QHBoxLayout(search_widget)
+        search_layout.setContentsMargins(0, 0, 0, 0)  # 去掉子布局的边距
+        search_layout.setSpacing(5)  # 搜索框和搜索按钮之间的间距
+
+        # 添加搜索框和搜索按钮
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("搜索收入项目...")
+        self.search_input.setFixedWidth(200)
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                padding: 5px;
+                border: 1px solid #d3d3d3;
+                border-radius: 3px;
+                font-size: 20px;
+            }
+        """)
+        # 回车键触发搜索
+        self.search_input.returnPressed.connect(self.perform_search)
+
+        self.search_button = QPushButton("搜索")
+        self.search_button.setFixedWidth(button_width)
+        self.search_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d3d3d3; 
+                padding: 5px;
+                border-radius: 3px;
+                font-size: 20px;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
+        self.search_button.clicked.connect(self.perform_search)
+
+        # 将搜索框和搜索按钮添加到子布局
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(self.search_button)
+
+        # 计算子布局的宽度，确保和底部的“恢复”按钮对齐
+        search_widget.setFixedWidth(200 + button_width + 5)  # 搜索框宽度 + 按钮宽度 + 间距
         
-        # 添加弹簧使按钮靠左
+        # 将子布局添加到 top_button_layout，并靠右
         top_button_layout.addStretch()
+        top_button_layout.addWidget(search_widget, alignment=Qt.AlignRight)  # 显式设置右对齐
+
         main_layout.addLayout(top_button_layout)
+        
+        # # 添加弹簧使按钮靠左
+        # top_button_layout.addStretch()
+        # main_layout.addLayout(top_button_layout)
 
         # 创建滚动区域
         scroll = QScrollArea()
@@ -109,6 +166,58 @@ class YearWindow(QMainWindow):
         main_layout.addLayout(bottom_button_layout)
 
         self.load_years()
+
+    def perform_search(self):
+        """执行模糊搜索并显示结果"""
+        keyword = self.search_input.text().strip()
+        if not keyword:
+            QMessageBox.warning(self, "输入错误", "请输入搜索关键词！")
+            return
+
+        # 调用数据库方法搜索收入项目
+        results = self.db.search_income_projects(keyword)
+        if not results:
+            QMessageBox.information(self, "无结果", f"未找到与 '{keyword}' 相关的收入项目。")
+            return
+
+        # 如果只有一个结果，直接跳转
+        if len(results) == 1:
+            project_id, project_name, year, month = results[0]
+            self.open_monthly_window(year, month)
+            return
+
+        # 如果有多个结果，弹出对话框让用户选择
+        dialog = QDialog(self)
+        dialog.setWindowTitle("选择项目")
+        dialog.setFixedSize(600, 400)
+        dialog.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        layout = QVBoxLayout()
+        label = QLabel(f"找到以下与 '{keyword}' 相关的收入项目，请选择：")
+        layout.addWidget(label)
+
+        combo = QComboBox()
+        options = [f"{name} ({year}年{month}月)" for _, name, year, month in results]
+        combo.addItems(options)
+        layout.addWidget(combo)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec_():
+            selected_index = combo.currentIndex()
+            project_id, project_name, year, month = results[selected_index]
+            self.open_monthly_window(year, month)
+
+    def open_monthly_window(self, year, month):
+        """打开月度详情窗口"""
+        from .monthly_window import MonthlyWindow
+        self.monthly_window = MonthlyWindow(year, month)
+        self.monthly_window.show()
 
     def clear_years_layout(self):
         """清空当前的年份卡片布局"""
@@ -249,6 +358,7 @@ class YearWindow(QMainWindow):
 
         self.restore_button.setEnabled(True)
         
+
 class CreateYearDialog(QDialog):
     """创建年份的对话框"""
     def __init__(self, parent=None):
