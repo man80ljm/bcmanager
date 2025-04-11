@@ -22,7 +22,7 @@ class YearWindow(QMainWindow):
     def initUI(self):
         # 设置窗口标题和大小
         self.setWindowTitle('年份管理')
-        self.setFixedSize(1200, 800)
+        self.setFixedSize(800, 500)
         # 设置窗口图标
         self.setWindowIcon(QIcon(r'D:\bcmanager\logo01.png'))  # 使用和界面相同的logo路径
 
