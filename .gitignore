@@ -6,7 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
+*.db
 # 忽略其他临时文件（可选）
 *.xlsx
-
