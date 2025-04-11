@@ -12,11 +12,11 @@ from utils.file_manager import FileManager  # 导入 FileManager
 from utils.export_excel import ExcelExporter  # 直接从 utils 导入
 
 class YearWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, parent=None):
         super().__init__()
         self.db = DatabaseManager()  # 初始化数据库管理器
         self.file_manager = FileManager()  # 初始化 FileManager
-        self.exporter = ExcelExporter(self.db)  # 初始化 ExcelExporter
+        self.exporter = ExcelExporter(self.db, parent=self)  # 初始化 ExcelExporter
         self.initUI()
     
     def initUI(self):
@@ -227,11 +227,17 @@ class YearWindow(QMainWindow):
         if dialog.exec_():
             selected_year = combo.currentText()
             # 调用导出方法
-            success = self.exporter.export_by_year(selected_year)
+            success, reason = self.exporter.export_by_year(selected_year)
             if success:
                 QMessageBox.information(self, "导出成功", f"{selected_year} 年的数据已导出到 exports/{selected_year}_transactions.xlsx")
-            else:
+            elif reason == "no_data":
                 QMessageBox.warning(self, "无数据", f"{selected_year} 年没有数据可导出！")
+            elif reason == "file_locked":
+                # 文件被占用，提示已在 export_by_year 中显示，不需要额外提示
+                pass
+            else:
+                # 其他未知失败原因
+                QMessageBox.warning(self, "错误", f"导出 {selected_year} 年数据失败，原因未知")
 
         self.export_button.setEnabled(True)
 
