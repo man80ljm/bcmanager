@@ -1,0 +1,23 @@
+project_accounting/
+│
+├── main.py                 # 程序入口，启动应用
+├── ui/
+│   ├── _init_.py
+│   ├── login_window.py     # 登录界面
+│   ├── year_window.py      # 年份管理界面
+│   ├── annual_window.py    # 年度详情界面
+│   ├── monthly_window.py   # 月度详情界面
+│   ├── dialogs.py          # 各种弹窗（创建项目、筛选等）
+│
+├── database/
+│   ├── _init_.py       # 数据库操作（增删改查）
+│   ├── db_manager.py       # 数据库操作（增删改查）
+│   ├── schema.sql          # 数据库表结构定义
+│
+├── utils/
+│   ├── file_manager.py     # 文件操作（创建文件夹、备份等）
+│   ├── export_excel.py     # 导出Excel功能
+│
+├── db_backup/               # 备份文件夹
+│
+└── README.md               # 项目说明文档
