@@ -227,6 +227,17 @@ class YearWindow(QMainWindow):
 
         if dialog.exec_():
             selected_year = combo.currentText()
+            try:
+                has_data = self.db.has_transactions_in_year(selected_year)
+                print(f"检查年份 {selected_year} 是否有数据: {has_data}")
+                if not has_data:
+                    QMessageBox.warning(self, "无数据", f"{selected_year} 年没有数据可导出！")
+                    self.export_button.setEnabled(True)
+                    return
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"检查年份数据失败：{str(e)}")
+                self.export_button.setEnabled(True)
+                return
             # 调用导出方法
             success, reason = self.exporter.export_by_year(selected_year)
             if success:

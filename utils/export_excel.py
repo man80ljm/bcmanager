@@ -140,26 +140,27 @@ class ExcelExporter:
                 worksheet.append(["", "", "", "", "", "", "", "净收入", f"{net_income:.2f}", ""])
                 worksheet.append(["", "", "", "", "", "", "", "总额", f"{net_income:.2f}元", ""])
 
-        try:
-            if has_data:
+        # 修改后的逻辑：只有当有数据时才保存文件
+        if has_data:
+            try:
                 writer.close()
                 print(f"成功导出 {year} 年的数据到 {output_file}")
                 return True, None
-            else:
-                print(f"{year} 年没有数据，跳过导出")
-                writer.close()
-                os.remove(output_file)
-                return False, "no_data"
-        except (PermissionError, IOError) as e:
-            if self.parent:
-                QMessageBox.warning(
-                    self.parent,
-                    "导出失败",
-                    "无法导出！请关闭文件再导出！"
-                )
-            else:
-                print("无法导出！请关闭文件再导出！")
-            return False, "file_locked"
+            except (PermissionError, IOError) as e:
+                if self.parent:
+                    QMessageBox.warning(
+                        self.parent,
+                        "导出失败",
+                        "无法导出！请关闭文件再导出！"
+                    )
+                else:
+                    print("无法导出！请关闭文件再导出！")
+                return False, "file_locked"
+        else:
+            # 如果没有数据，直接关闭 writer（不保存），并返回
+            writer.close()
+            print(f"{year} 年没有数据，跳过导出")
+            return False, "no_data"
 
     def export_all_years(self, output_dir="exports"):
         years = self.db.get_years()

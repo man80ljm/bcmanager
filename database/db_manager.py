@@ -528,6 +528,20 @@ class DatabaseManager:
         conn.close()
         return results
     
+    # 在 db_manager.py 中添加新方法
+    def has_transactions_in_year(self, year):
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 1
+            FROM transactions
+            WHERE year_id = (SELECT id FROM years WHERE year = ?)
+            LIMIT 1
+        """, (year,))
+        has_data = cursor.fetchone() is not None
+        conn.close()
+        return has_data
+
 # 测试代码
 if __name__ == '__main__':
     db = DatabaseManager()
