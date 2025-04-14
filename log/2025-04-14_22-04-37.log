@@ -1,0 +1,30 @@
+2025-04-14 22:04:37,499 - INFO - 程序启动，日志文件：log\2025-04-14_22-04-37.log
+2025-04-14 22:04:37,508 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:04:37,510 - INFO - remarks 表结构升级完成！
+2025-04-14 22:04:37,554 - INFO - 数据库初始化成功
+2025-04-14 22:04:39,171 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:04:39,173 - INFO - remarks 表结构升级完成！
+2025-04-14 22:04:39,217 - INFO - 数据库初始化成功
+2025-04-14 22:04:39,989 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:04:39,991 - INFO - remarks 表结构升级完成！
+2025-04-14 22:04:40,034 - INFO - 数据库初始化成功
+2025-04-14 22:04:41,328 - INFO - Opening monthly window for 2025-3
+2025-04-14 22:04:41,329 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:04:41,330 - INFO - remarks 表结构升级完成！
+2025-04-14 22:04:41,340 - INFO - 数据库初始化成功
+2025-04-14 22:04:44,064 - INFO - Editing transaction with id 11
+2025-04-14 22:04:49,422 - INFO - Editing transaction with id 12
+2025-04-14 22:04:52,532 - INFO - Calling update_transaction with: id=12, amount=5000.0, type=收入, payment_method=对公账户, stage=第二阶段
+2025-04-14 22:04:52,533 - INFO - Updating transaction with: transaction_id=12, amount=5000.0, trans_type=收入, payment_method=对公账户, stage=第二阶段
+2025-04-14 22:04:52,570 - INFO - Transaction 12 updated successfully
+2025-04-14 22:04:52,571 - INFO - update_transaction result: (True, '收入', '收入', '第一阶段')
+2025-04-14 22:04:52,572 - INFO - 快捷方式删除成功: 项目资料\2025年\03月\转笔刀设计（第一阶段）.lnk
+2025-04-14 22:04:52,574 - INFO - 创建快捷方式: project_name=转笔刀设计, original_path=项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:04:52,574 - INFO - Ensured base_path exists: 项目资料\2025年\03月
+2025-04-14 22:04:52,575 - ERROR - 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:04:52,575 - INFO - Created styled message box: title=提示, text=快捷方式创建失败: 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计, width=500
+2025-04-14 22:04:55,307 - INFO - Created styled message box: title=成功, text=收支记录修改成功！, width=400
+2025-04-14 22:05:01,584 - INFO - Editing transaction with id 12
+2025-04-14 22:05:10,768 - INFO - Editing transaction with id 12
+2025-04-14 22:05:20,464 - INFO - Editing transaction with id 11
+2025-04-14 22:05:26,431 - INFO - Editing transaction with id 12

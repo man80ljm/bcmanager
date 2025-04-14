@@ -1,0 +1,18 @@
+2025-04-14 22:10:55,012 - INFO - 程序启动，日志文件：log\2025-04-14_22-10-55.log
+2025-04-14 22:10:55,021 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:10:55,023 - INFO - remarks 表结构升级完成！
+2025-04-14 22:10:55,067 - INFO - 数据库初始化成功
+2025-04-14 22:10:56,703 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:10:56,704 - INFO - remarks 表结构升级完成！
+2025-04-14 22:10:56,749 - INFO - 数据库初始化成功
+2025-04-14 22:10:57,875 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:10:57,876 - INFO - remarks 表结构升级完成！
+2025-04-14 22:10:57,919 - INFO - 数据库初始化成功
+2025-04-14 22:10:58,832 - INFO - Opening monthly window for 2025-3
+2025-04-14 22:10:58,833 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:10:58,834 - INFO - remarks 表结构升级完成！
+2025-04-14 22:10:58,878 - INFO - 数据库初始化成功
+2025-04-14 22:11:00,416 - INFO - Editing transaction with id 12
+2025-04-14 22:11:03,488 - INFO - Editing transaction with id 15
+2025-04-14 22:11:21,976 - INFO - Editing transaction with id 12
+2025-04-14 22:11:24,784 - INFO - Editing transaction with id 15

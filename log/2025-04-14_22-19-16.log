@@ -1,0 +1,38 @@
+2025-04-14 22:19:16,540 - INFO - 程序启动，日志文件：log\2025-04-14_22-19-16.log
+2025-04-14 22:19:16,549 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:19:16,552 - INFO - remarks 表结构升级完成！
+2025-04-14 22:19:16,595 - INFO - 数据库初始化成功
+2025-04-14 22:19:18,298 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:19:18,300 - INFO - remarks 表结构升级完成！
+2025-04-14 22:19:18,344 - INFO - 数据库初始化成功
+2025-04-14 22:19:19,109 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:19:19,111 - INFO - remarks 表结构升级完成！
+2025-04-14 22:19:19,156 - INFO - 数据库初始化成功
+2025-04-14 22:19:20,128 - INFO - Opening monthly window for 2025-3
+2025-04-14 22:19:20,130 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:19:20,132 - INFO - remarks 表结构升级完成！
+2025-04-14 22:19:20,143 - INFO - 数据库初始化成功
+2025-04-14 22:19:22,744 - INFO - Editing transaction with id 12
+2025-04-14 22:19:25,137 - INFO - Editing transaction with id 15
+2025-04-14 22:19:30,866 - INFO - Calling update_transaction with: id=15, amount=4000.0, type=收入, payment_method=微信, stage=第四阶段
+2025-04-14 22:19:30,867 - INFO - Updating transaction with: transaction_id=15, amount=4000.0, trans_type=收入, payment_method=微信, stage=第四阶段
+2025-04-14 22:19:30,870 - INFO - Transaction 15 updated successfully
+2025-04-14 22:19:30,870 - INFO - update_transaction result: (True, '收入', '收入', '第三阶段')
+2025-04-14 22:19:30,870 - INFO - 快捷方式不存在，无需删除: 项目资料\2025年\03月\转笔刀设计（第三阶段）.lnk
+2025-04-14 22:19:30,872 - INFO - 创建快捷方式: project_name=转笔刀设计, original_path=项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:19:30,872 - INFO - Ensured base_path exists: 项目资料\2025年\03月
+2025-04-14 22:19:30,872 - ERROR - 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:19:30,873 - INFO - Created styled message box: title=提示, text=快捷方式创建失败: 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计, width=500
+2025-04-14 22:19:32,197 - INFO - Created styled message box: title=成功, text=收支记录修改成功！, width=400
+2025-04-14 22:21:12,843 - INFO - Created styled message box: title=确认创建, text=项目名称: 开发板外壳设计
+金额: 8500.0
+类型: 收入
+支付方式: 对公账户, width=500
+2025-04-14 22:21:15,352 - INFO - 文件夹创建成功: 项目资料\2025年\03月\开发板外壳设计
+2025-04-14 22:21:15,353 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-14 22:21:24,077 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:21:24,078 - INFO - remarks 表结构升级完成！
+2025-04-14 22:21:24,087 - INFO - 数据库初始化成功
+2025-04-14 22:21:30,769 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:21:30,772 - INFO - remarks 表结构升级完成！
+2025-04-14 22:21:30,782 - INFO - 数据库初始化成功

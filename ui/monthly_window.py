@@ -360,16 +360,18 @@ class EditTransactionDialog(QDialog):
         layout.addWidget(self.name_label)
         layout.addWidget(self.name_input)
 
-        # 阶段选择（仅对阶段性项目显示）
+        # 阶段选择框
         self.stage_label = QLabel("阶段:")
         self.stage_combo = QComboBox()
-        self.stage_combo.addItem("第一阶段")  # 添加空选项
-        self.stage_combo.addItems(["第二阶段", "第三阶段", "第四阶段"])  # 可根据需求扩展
-        if self.transaction[6]:  # 如果是阶段性项目
+        if self.transaction[6]:  # 阶段性项目
+            self.stage_combo.addItems(["第二阶段", "第三阶段", "第四阶段"])
             self.stage_combo.setCurrentText(self.transaction[6])
-        else:
-            self.stage_combo.setCurrentText("第一阶段")  # 非阶段性项目默认空
-            self.stage_combo.setEnabled(False)  # 非阶段性项目禁用
+            self.stage_combo.setEnabled(True)
+            self.stage_combo.setToolTip("请选择阶段")
+        else:  # 非阶段性项目
+            self.stage_combo.addItem("")  # 非阶段性项目显示为空
+            self.stage_combo.setCurrentText("")
+            self.stage_combo.setEnabled(False)
             self.stage_combo.setToolTip("仅阶段性项目可修改阶段")
         layout.addWidget(self.stage_label)
         layout.addWidget(self.stage_combo)

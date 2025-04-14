@@ -1,0 +1,41 @@
+2025-04-14 22:07:21,283 - INFO - 程序启动，日志文件：log\2025-04-14_22-07-21.log
+2025-04-14 22:07:21,292 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:07:21,294 - INFO - remarks 表结构升级完成！
+2025-04-14 22:07:21,303 - INFO - 数据库初始化成功
+2025-04-14 22:07:23,313 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:07:23,315 - INFO - remarks 表结构升级完成！
+2025-04-14 22:07:23,360 - INFO - 数据库初始化成功
+2025-04-14 22:07:24,140 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:07:24,141 - INFO - remarks 表结构升级完成！
+2025-04-14 22:07:24,188 - INFO - 数据库初始化成功
+2025-04-14 22:07:25,409 - INFO - Opening monthly window for 2025-3
+2025-04-14 22:07:25,410 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:07:25,427 - INFO - remarks 表结构升级完成！
+2025-04-14 22:07:25,438 - INFO - 数据库初始化成功
+2025-04-14 22:07:29,511 - INFO - Editing transaction with id 12
+2025-04-14 22:07:41,551 - INFO - Accepted item: 转笔刀设计
+2025-04-14 22:07:49,234 - INFO - Created styled message box: title=确认创建, text=项目名称: 转笔刀设计
+阶段: 第二阶段
+金额: 4000.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-14 22:07:50,382 - INFO - 创建快捷方式: project_name=转笔刀设计, original_path=项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:07:50,383 - INFO - Ensured base_path exists: 项目资料\2025年\03月
+2025-04-14 22:07:50,383 - ERROR - 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:07:50,384 - INFO - Created styled message box: title=提示, text=快捷方式创建失败: 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计, width=500
+2025-04-14 22:07:52,362 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-14 22:07:57,015 - INFO - Editing transaction with id 15
+2025-04-14 22:08:02,483 - INFO - Calling update_transaction with: id=15, amount=4000.0, type=收入, payment_method=微信, stage=第三阶段
+2025-04-14 22:08:02,484 - INFO - Updating transaction with: transaction_id=15, amount=4000.0, trans_type=收入, payment_method=微信, stage=第三阶段
+2025-04-14 22:08:02,523 - INFO - Transaction 15 updated successfully
+2025-04-14 22:08:02,524 - INFO - update_transaction result: (True, '收入', '收入', '第二阶段')
+2025-04-14 22:08:02,525 - INFO - 快捷方式不存在，无需删除: 项目资料\2025年\03月\转笔刀设计（第二阶段）.lnk
+2025-04-14 22:08:02,527 - INFO - 创建快捷方式: project_name=转笔刀设计, original_path=项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:08:02,527 - INFO - Ensured base_path exists: 项目资料\2025年\03月
+2025-04-14 22:08:02,528 - ERROR - 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计
+2025-04-14 22:08:02,528 - INFO - Created styled message box: title=提示, text=快捷方式创建失败: 原始项目目录不存在: 项目资料\2024年\01月\转笔刀设计, width=500
+2025-04-14 22:08:03,498 - INFO - Created styled message box: title=成功, text=收支记录修改成功！, width=400
+2025-04-14 22:08:05,679 - INFO - Editing transaction with id 15
+2025-04-14 22:08:10,440 - INFO - Editing transaction with id 11
+2025-04-14 22:08:16,936 - INFO - Editing transaction with id 11
+2025-04-14 22:08:23,520 - INFO - Editing transaction with id 11

@@ -1,0 +1,35 @@
+2025-04-14 22:30:57,584 - INFO - 程序启动，日志文件：log\2025-04-14_22-30-57.log
+2025-04-14 22:30:57,593 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:30:57,595 - INFO - remarks 表结构升级完成！
+2025-04-14 22:30:57,605 - INFO - 数据库初始化成功
+2025-04-14 22:30:59,401 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:30:59,404 - INFO - remarks 表结构升级完成！
+2025-04-14 22:30:59,414 - INFO - 数据库初始化成功
+2025-04-14 22:31:10,110 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:31:10,112 - INFO - remarks 表结构升级完成！
+2025-04-14 22:31:10,156 - INFO - 数据库初始化成功
+2025-04-14 22:31:11,396 - INFO - Opening monthly window for 2024-2
+2025-04-14 22:31:11,397 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:31:11,399 - INFO - remarks 表结构升级完成！
+2025-04-14 22:31:11,442 - INFO - 数据库初始化成功
+2025-04-14 22:31:33,293 - INFO - Created styled message box: title=确认创建, text=项目名称: 玻璃瓶型设计
+金额: 9000.0
+类型: 收入
+支付方式: 支付宝, width=500
+2025-04-14 22:31:34,212 - INFO - 文件夹创建成功: 项目资料\2024年\02月\玻璃瓶型设计
+2025-04-14 22:31:34,213 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-14 22:32:01,139 - INFO - Opening monthly window for 2024-3
+2025-04-14 22:32:01,140 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:32:01,142 - INFO - remarks 表结构升级完成！
+2025-04-14 22:32:01,186 - INFO - 数据库初始化成功
+2025-04-14 22:32:04,596 - INFO - Opening monthly window for 2024-4
+2025-04-14 22:32:04,596 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:32:04,598 - INFO - remarks 表结构升级完成！
+2025-04-14 22:32:04,641 - INFO - 数据库初始化成功
+2025-04-14 22:32:06,739 - INFO - Opening monthly window for 2024-2
+2025-04-14 22:32:06,740 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:32:06,742 - INFO - remarks 表结构升级完成！
+2025-04-14 22:32:06,786 - INFO - 数据库初始化成功
+2025-04-14 22:32:10,828 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-14 22:32:10,830 - INFO - remarks 表结构升级完成！
+2025-04-14 22:32:10,873 - INFO - 数据库初始化成功
