@@ -124,16 +124,16 @@ class DetailExpenseDialog(QDialog):
         title = f"{project_name}（{stage}） - 收支详情" if stage else f"{project_name} - 收支详情"
         self.setWindowTitle(title)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.setMinimumSize(600, 400)
+        self.setMinimumSize(1000, 800)
         self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout()
         
-        # 设置字体为 Microsoft YaHei，20 号，带备选字体
+        # 设置字体为 Microsoft YaHei，12 号，带备选字体
         font = QFont()
         font.setFamily("Microsoft YaHei, SimSun, Arial")
-        font.setPointSize(20)
+        font.setPointSize(12)
 
         # 初始化表格
         self.table = QTableWidget()
@@ -142,7 +142,7 @@ class DetailExpenseDialog(QDialog):
         
         # 设置表格列名字体
         header = self.table.horizontalHeader()
-        header.setFont(font)  # 列名字体设置为 20 号
+        header.setFont(font)  # 列名字体设置为 12 号
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(0, QHeaderView.Interactive)
         header.setSectionResizeMode(1, QHeaderView.Interactive)
@@ -154,6 +154,16 @@ class DetailExpenseDialog(QDialog):
         # 设置表格内容字体
         self.table.setFont(font)  # 表格单元格内容字体设置为 20 号
         
+        # 设置行高（动态计算，适配 12 号字体）
+        row_height = QFontMetrics(font).height() + 15  # 字体高度加 15 像素余量
+        self.table.verticalHeader().setDefaultSectionSize(row_height)
+
+        # 设置表格样式（边框和表头背景色）
+        # self.table.setStyleSheet("""
+        #     QTableWidget { font-family: 'Microsoft YaHei, SimSun, Arial'; font-size: 20pt; border: 1px solid #a0a0a0; }
+        #     QHeaderView::section { background-color: #f0f0f0; font-family: 'Microsoft YaHei, SimSun, Arial'; font-size: 20pt; }
+        # """)
+
         # 设置编辑触发器
         self.table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed)
         self.table.resizeEvent = self.adjust_column_widths
@@ -268,7 +278,7 @@ class DetailExpenseDialog(QDialog):
             combo = QComboBox()
             combo.addItems(["收入", "支出"])
             combo.setCurrentText(trans_type)
-            combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 20))  # 组合框字体设置为 20 号
+            combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 12))  # 组合框字体设置为 12 号
             self.table.setCellWidget(row, 1, combo)
             self.table.setItem(row, 2, QTableWidgetItem(str(amount)))
 
@@ -278,7 +288,7 @@ class DetailExpenseDialog(QDialog):
         self.table.setItem(row_count, 0, QTableWidgetItem("")) # 项目名称
         combo = QComboBox()
         combo.addItems(["收入", "支出"])
-        combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 20))  # 组合框字体设置为 20 号
+        combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 12))  # 组合框字体设置为 12 号
         self.table.setCellWidget(row_count, 1, combo) # 类型
         self.table.setItem(row_count, 2, QTableWidgetItem("0")) # 金额
 
@@ -563,13 +573,13 @@ class MonthlyWindow(QMainWindow):
         msg.setWindowTitle(title)
         msg.setText(text)
         msg.setStandardButtons(buttons)
-        # 设置字体为 Microsoft YaHei，20 号，带备选字体
+        # 设置字体为 Microsoft YaHei，12 号，带备选字体
         font = QFont()
         font.setFamily("Microsoft YaHei, SimSun, Arial")
-        font.setPointSize(20)
+        font.setPointSize(12)
         msg.setFont(font)
         # 设置样式表：仅调整文本间距（按钮样式已通过全局样式表设置）
-        msg.setStyleSheet("QLabel { font-family: 'Microsoft YaHei, SimSun, Arial'; font-size: 20pt; padding: 10px; }")
+        msg.setStyleSheet("QLabel { font-family: 'Microsoft YaHei, SimSun, Arial'; font-size: 12pt; padding: 10px; }")
         # 根据文本长度动态调整宽度
         width = 500 if len(text) > 20 else 400
         msg.setFixedWidth(width)
@@ -604,19 +614,19 @@ class MonthlyWindow(QMainWindow):
 
         # 设置表格内容字体（20 号）
         content_font = QFont()
-        content_font.setPointSize(20)
+        content_font.setPointSize(12)
         self.table.setFont(content_font)
 
         # 设置表头字体（20 号）
         header_font = QFont()
-        header_font.setPointSize(20)
+        header_font.setPointSize(12)
         self.table.horizontalHeader().setFont(header_font)
 
         # 设置初始列宽
         for col, ratio in enumerate(self.column_width_ratios):
             self.table.setColumnWidth(col, int(self.base_width * ratio))
 
-        # 设置初始行高（动态计算，适应 20 号字体）
+        # 设置初始行高（动态计算，适应 12 号字体）
         row_height = QFontMetrics(content_font).height() + 20  # 字体高度加 20 像素余量
         self.table.verticalHeader().setDefaultSectionSize(row_height)
 
@@ -631,7 +641,7 @@ class MonthlyWindow(QMainWindow):
         # 初始化并设置 summary_label（移到表格下方）
         self.summary_label = QLabel()
         summary_font = QFont()
-        summary_font.setPointSize(20)
+        summary_font.setPointSize(12)
         self.summary_label.setFont(summary_font)
         layout.addWidget(self.summary_label)
 
@@ -1205,10 +1215,10 @@ class MonthlyWindow(QMainWindow):
             msg.exec_()
             return
         
-        # 设置字体为 Microsoft YaHei，20 号（用于 QInputDialog）
+        # 设置字体为 Microsoft YaHei，12 号（用于 QInputDialog）
         font = QFont()
         font.setFamily("Microsoft YaHei, SimSun, Arial")
-        font.setPointSize(20)
+        font.setPointSize(12)
         
         # 选择年份
         dialog = QInputDialog(self)
