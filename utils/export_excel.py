@@ -1,7 +1,4 @@
-import pandas as pd
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font, Alignment
-from openpyxl.utils import get_column_letter
+
 from datetime import datetime
 import os
 from database.db_manager import DatabaseManager
@@ -14,6 +11,10 @@ class ExcelExporter:
         self.parent = parent
 
     def export_by_year(self, year, output_dir="exports"):
+        import pandas as pd
+        from openpyxl import Workbook
+        from openpyxl.styles import PatternFill, Font, Alignment
+        from openpyxl.utils import get_column_letter
         # 创建导出目录
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QVBoxLayout, QWidget,
                              QMenu, QInputDialog, QComboBox, QMessageBox, QHBoxLayout, QDialog, QTextEdit,
                              QTableWidgetItem, QHeaderView,QApplication, QLineEdit,QAction, QCheckBox,)
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtGui import QIcon, QColor,QFont, QFontMetrics
 from PyQt5.QtCore import Qt,QTimer
 from database.db_manager import DatabaseManager
 from utils.file_manager import FileManager
@@ -11,7 +11,6 @@ import os
 import sys
 from datetime import datetime
 import resources
-
 
 
 # 定义收入类型的详情对话框
@@ -130,10 +129,20 @@ class DetailExpenseDialog(QDialog):
 
     def initUI(self):
         layout = QVBoxLayout()
+        
+        # 设置字体为 Microsoft YaHei，20 号，带备选字体
+        font = QFont()
+        font.setFamily("Microsoft YaHei, SimSun, Arial")
+        font.setPointSize(20)
+
+        # 初始化表格
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["项目名称", "类型", "金额"])
+        
+        # 设置表格列名字体
         header = self.table.horizontalHeader()
+        header.setFont(font)  # 列名字体设置为 20 号
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(0, QHeaderView.Interactive)
         header.setSectionResizeMode(1, QHeaderView.Interactive)
@@ -141,23 +150,39 @@ class DetailExpenseDialog(QDialog):
         self.table.setColumnWidth(0, 500)
         self.table.setColumnWidth(1, 250)
         self.table.setColumnWidth(2, 250)
-        # 设置编辑触发器：只允许双击或程序触发的编辑
+        
+        # 设置表格内容字体
+        self.table.setFont(font)  # 表格单元格内容字体设置为 20 号
+        
+        # 设置编辑触发器
         self.table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed)
         self.table.resizeEvent = self.adjust_column_widths
         self.load_sub_transactions()
         layout.addWidget(self.table)
-        self.table.itemChanged.connect(self.on_item_changed)  # 连接信号
+        
+        # 连接信号
+        self.table.itemChanged.connect(self.on_item_changed)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
+        
+        # 新增项按钮
         add_button = QPushButton("新增项")
+        add_button.setFont(font)  # 按钮字体设置为 20 号
         add_button.clicked.connect(self.add_row)
         layout.addWidget(add_button)
+        
+        # 总金额标签
         self.total_label = QLabel("总金额：0元")
+        self.total_label.setFont(font)  # 标签字体设置为 20 号
         layout.addWidget(self.total_label)
         self.update_total()
+        
+        # 保存按钮
         save_button = QPushButton("保存")
+        save_button.setFont(font)  # 按钮字体设置为 20 号
         save_button.clicked.connect(self.save_details)
         layout.addWidget(save_button)
+        
         self.setLayout(layout)
 
     def show_context_menu(self, pos):
@@ -243,6 +268,7 @@ class DetailExpenseDialog(QDialog):
             combo = QComboBox()
             combo.addItems(["收入", "支出"])
             combo.setCurrentText(trans_type)
+            combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 20))  # 组合框字体设置为 20 号
             self.table.setCellWidget(row, 1, combo)
             self.table.setItem(row, 2, QTableWidgetItem(str(amount)))
 
@@ -252,6 +278,7 @@ class DetailExpenseDialog(QDialog):
         self.table.setItem(row_count, 0, QTableWidgetItem("")) # 项目名称
         combo = QComboBox()
         combo.addItems(["收入", "支出"])
+        combo.setFont(QFont("Microsoft YaHei, SimSun, Arial", 20))  # 组合框字体设置为 20 号
         self.table.setCellWidget(row_count, 1, combo) # 类型
         self.table.setItem(row_count, 2, QTableWidgetItem("0")) # 金额
 
@@ -530,49 +557,93 @@ class MonthlyWindow(QMainWindow):
             self.base_width = 100  # 基准宽度
             self.initUI()
 
+    def create_styled_message_box(self, title, text, buttons=QMessageBox.Ok):
+        """创建样式统一的 QMessageBox"""
+        msg = QMessageBox(self)
+        msg.setWindowTitle(title)
+        msg.setText(text)
+        msg.setStandardButtons(buttons)
+        # 设置字体为 Microsoft YaHei，20 号，带备选字体
+        font = QFont()
+        font.setFamily("Microsoft YaHei, SimSun, Arial")
+        font.setPointSize(20)
+        msg.setFont(font)
+        # 设置样式表：仅调整文本间距（按钮样式已通过全局样式表设置）
+        msg.setStyleSheet("QLabel { font-family: 'Microsoft YaHei, SimSun, Arial'; font-size: 20pt; padding: 10px; }")
+        # 根据文本长度动态调整宽度
+        width = 500 if len(text) > 20 else 400
+        msg.setFixedWidth(width)
+        # 添加日志记录
+        logging.info(f"Created styled message box: title={title}, text={text}, width={width}")
+        return msg
+
     def initUI(self):
-            self.setWindowTitle(f'{self.year}年{self.month}月详情')
-            self.setMinimumSize(1800, 550)
-            self.setWindowIcon(QIcon(':/logo01.png'))
+        self.setWindowTitle(f'{self.year}年{self.month}月详情')
+        self.setMinimumSize(1800, 550)
+        self.setWindowIcon(QIcon(':/logo01.png'))
 
-            central_widget = QWidget()
-            self.setCentralWidget(central_widget)
-            layout = QVBoxLayout(central_widget)
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
 
-            self.table = QTableWidget()
-            self.table.setColumnCount(8)
-            self.table.setHorizontalHeaderLabels(["创建时间", "项目名称", "金额", "类型", "支付方式", "详情", "修改", "删除"])
-            self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        # 按钮布局（创建和筛选按钮）
+        button_layout = QHBoxLayout()
+        create_button = QPushButton("创建")
+        create_button.clicked.connect(self.show_create_dialog)
+        filter_button = QPushButton("筛选")
+        filter_button.clicked.connect(self.show_filter_dialog)
+        button_layout.addWidget(create_button)
+        button_layout.addWidget(filter_button)
+        layout.addLayout(button_layout)
 
-            # 设置初始列宽（临时值，避免挤在一起）
-            for col, ratio in enumerate(self.column_width_ratios):
-                self.table.setColumnWidth(col, int(self.base_width * ratio))
+        # 初始化表格
+        self.table = QTableWidget()
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels(["创建时间", "项目名称", "金额", "类型", "支付方式", "详情", "修改", "删除"])
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
 
-            # 允许手动拖动调整列宽
-            header = self.table.horizontalHeader()
-            for col in range(self.table.columnCount()):
-                header.setSectionResizeMode(col, QHeaderView.Interactive)
-            
-            button_layout = QHBoxLayout()
-            create_button = QPushButton("创建")
-            create_button.clicked.connect(self.show_create_dialog)
-            filter_button = QPushButton("筛选")
-            filter_button.clicked.connect(self.show_filter_dialog)  # 添加这一行绑定筛选按钮
-            button_layout.addWidget(create_button)
-            button_layout.addWidget(filter_button)
-            layout.addLayout(button_layout)
+        # 设置表格内容字体（20 号）
+        content_font = QFont()
+        content_font.setPointSize(20)
+        self.table.setFont(content_font)
 
-            self.summary_label = QLabel()
-            layout.addWidget(self.summary_label)
+        # 设置表头字体（20 号）
+        header_font = QFont()
+        header_font.setPointSize(20)
+        self.table.horizontalHeader().setFont(header_font)
 
-            self.load_transactions()
+        # 设置初始列宽
+        for col, ratio in enumerate(self.column_width_ratios):
+            self.table.setColumnWidth(col, int(self.base_width * ratio))
 
-            self.table.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.table.customContextMenuRequested.connect(self.show_context_menu)
-            layout.addWidget(self.table)
+        # 设置初始行高（动态计算，适应 20 号字体）
+        row_height = QFontMetrics(content_font).height() + 20  # 字体高度加 20 像素余量
+        self.table.verticalHeader().setDefaultSectionSize(row_height)
 
-            # 延迟调整列宽，确保布局完成
-            QTimer.singleShot(0, self.update_column_widths)
+        # 允许手动拖动调整列宽
+        header = self.table.horizontalHeader()
+        for col in range(self.table.columnCount()):
+            header.setSectionResizeMode(col, QHeaderView.Interactive)
+
+        # 添加表格到布局
+        layout.addWidget(self.table)
+
+        # 初始化并设置 summary_label（移到表格下方）
+        self.summary_label = QLabel()
+        summary_font = QFont()
+        summary_font.setPointSize(20)
+        self.summary_label.setFont(summary_font)
+        layout.addWidget(self.summary_label)
+
+        # 加载交易记录（会更新 summary_label 内容）
+        self.load_transactions()
+
+        # 设置右键菜单
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.show_context_menu)
+
+        # 延迟调整列宽
+        QTimer.singleShot(0, self.update_column_widths)
 
     def show_filter_dialog(self):
         logging.info("Showing filter dialog")  # 添加日志
@@ -769,7 +840,8 @@ class MonthlyWindow(QMainWindow):
 
         if not transaction:
             logging.error(f"Transaction with id {transaction_id} not found before showing dialog")
-            QMessageBox.warning(self, "错误", "交易记录不存在！")
+            error_dialog = self.create_styled_message_box("错误", "交易记录不存在！")
+            error_dialog.exec_()
             return
 
         old_project_name = transaction[2]
@@ -786,11 +858,11 @@ class MonthlyWindow(QMainWindow):
 
             if not exists:
                 logging.error(f"Transaction with id {updated_data['id']} not found before update")
-                QMessageBox.warning(self, "错误", "交易记录已被删除，无法更新！")
+                error_dialog = self.create_styled_message_box("错误", "交易记录已被删除，无法更新！")
+                error_dialog.exec_()
                 self.load_transactions()
                 return
 
-            # 打印参数以调试
             logging.info(f"Calling update_transaction with: id={updated_data['id']}, amount={updated_data['amount']}, type={updated_data['type']}, payment_method={updated_data['payment_method']}, stage={updated_data['stage']}")
             result = self.db.update_transaction(
                 updated_data["id"], updated_data["amount"], updated_data["type"], 
@@ -799,7 +871,8 @@ class MonthlyWindow(QMainWindow):
             logging.info(f"update_transaction result: {result}")
             if not isinstance(result, tuple) or len(result) != 4:
                 logging.error(f"Unexpected result from update_transaction: {result}")
-                QMessageBox.warning(self, "错误", "更新收支记录失败：返回值格式错误")
+                error_dialog = self.create_styled_message_box("错误", "更新收支记录失败：返回值格式错误")
+                error_dialog.exec_()
                 return
             success, old_type, new_type, old_stage = result
 
@@ -823,20 +896,23 @@ class MonthlyWindow(QMainWindow):
                         project_year, project_month, old_project_name, updated_data["name"]
                     )
                     if not rename_success:
-                        QMessageBox.warning(self, "警告", f"项目文件夹重命名失败: {result}")
+                        warning_dialog = self.create_styled_message_box("警告", f"项目文件夹重命名失败: {result}")
+                        warning_dialog.exec_()
                     else:
                         update_success, update_result = self.file_manager.update_shortcuts(
                             old_project_name, updated_data["name"], project_year, project_month
                         )
                         if not update_success:
-                            QMessageBox.warning(self, "警告", f"快捷方式更新失败: {update_result}")
+                            warning_dialog = self.create_styled_message_box("警告", f"快捷方式更新失败: {update_result}")
+                            warning_dialog.exec_()
             if success:
                 if old_stage != updated_data["stage"] and updated_data["stage"]:
                     shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
                         self.year, self.month, old_project_name, old_stage
                     )
                     if not shortcut_success:
-                        QMessageBox.warning(self, "警告", f"旧快捷方式删除失败: {shortcut_result}")
+                        warning_dialog = self.create_styled_message_box("警告", f"旧快捷方式删除失败: {shortcut_result}")
+                        warning_dialog.exec_()
                     
                     conn = self.db.connect()
                     cursor = conn.cursor()
@@ -856,7 +932,8 @@ class MonthlyWindow(QMainWindow):
                         original_year, original_month
                     )
                     if not shortcut_success:
-                        QMessageBox.warning(self, "提示", f"快捷方式创建失败: {shortcut_result}")
+                        warning_dialog = self.create_styled_message_box("提示", f"快捷方式创建失败: {shortcut_result}")
+                        warning_dialog.exec_()
 
                 if old_type == "收入" and new_type == "支出":
                     if updated_data["stage"]:
@@ -864,13 +941,15 @@ class MonthlyWindow(QMainWindow):
                             self.year, self.month, old_project_name, updated_data["stage"]
                         )
                         if not shortcut_success:
-                            QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
+                            warning_dialog = self.create_styled_message_box("警告", f"快捷方式删除失败: {shortcut_result}")
+                            warning_dialog.exec_()
                     else:
                         delete_success, delete_result = self.file_manager.delete_project_folder(
                             self.year, self.month, old_project_name, is_only_project_in_month=True
                         )
                         if not delete_success:
-                            QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {delete_result}")
+                            warning_dialog = self.create_styled_message_box("警告", f"项目文件夹删除失败: {delete_result}")
+                            warning_dialog.exec_()
                 elif old_type == "支出" and new_type == "收入":
                     if updated_data["stage"]:
                         conn = self.db.connect()
@@ -890,96 +969,109 @@ class MonthlyWindow(QMainWindow):
                             original_year, original_month
                         )
                         if not shortcut_success:
-                            QMessageBox.warning(self, "提示", f"快捷方式创建失败: {shortcut_result}")
+                            warning_dialog = self.create_styled_message_box("提示", f"快捷方式创建失败: {shortcut_result}")
+                            warning_dialog.exec_()
                     else:
                         folder_success, folder_result = self.file_manager.create_project_folder(
                             self.year, self.month, updated_data["name"]
                         )
                         if not folder_success:
-                            QMessageBox.warning(self, "失败", f"创建文件夹失败: {folder_result}")
+                            warning_dialog = self.create_styled_message_box("失败", f"创建文件夹失败: {folder_result}")
+                            warning_dialog.exec_()
 
-                QMessageBox.information(self, "成功", "收支记录修改成功！")
+                info_dialog = self.create_styled_message_box("成功", "收支记录修改成功！")
+                info_dialog.exec_()
                 self.load_transactions()
             else:
-                QMessageBox.warning(self, "失败", "收支记录修改失败！")
-
+                warning_dialog = self.create_styled_message_box("失败", "收支记录修改失败！")
+                warning_dialog.exec_()
+                
     def delete_transaction(self, transaction_id):
-            # 通过 transaction_id 获取交易记录
+        # 通过 transaction_id 获取交易记录
+        conn = self.db.connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.id, p.name, t.stage, t.type
+            FROM transactions t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.id = ?
+        """, (transaction_id,))
+        transaction = cursor.fetchone()
+        conn.close()
+
+        if not transaction:
+            error_dialog = self.create_styled_message_box("错误", "交易记录不存在！")
+            error_dialog.exec_()
+            return
+
+        transaction_id, project_name, stage, trans_type = transaction
+        confirm_dialog = self.create_styled_message_box(
+            "确认删除",
+            f"确定要删除项目 '{project_name}' 的这条收支记录吗？",
+            buttons=QMessageBox.Yes | QMessageBox.No
+        )
+        reply = confirm_dialog.exec_()
+
+        if reply == QMessageBox.Yes:
             conn = self.db.connect()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT t.id, p.name, t.stage, t.type
-                FROM transactions t
-                LEFT JOIN projects p ON t.project_id = p.id
-                WHERE t.id = ?
-            """, (transaction_id,))
-            transaction = cursor.fetchone()
+                SELECT COUNT(*) 
+                FROM transactions 
+                WHERE year_id = (SELECT id FROM years WHERE year = ?) AND month = ?
+            """, (self.year, self.month))
+            total_transactions = cursor.fetchone()[0]
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM transactions 
+                WHERE project_id = (SELECT project_id FROM transactions WHERE id = ?) 
+                AND year_id = (SELECT id FROM years WHERE year = ?) 
+                AND month = ?
+            """, (transaction_id, self.year, self.month))
+            project_transactions = cursor.fetchone()[0]
             conn.close()
+            is_only_project_in_month = (project_transactions == 1 and total_transactions == 1)
+            # 删除数据库记录
+            success = self.db.delete_transaction(transaction_id)
+            if success:
+                # 根据类型和阶段决定是否删除文件夹/快捷方式
+                if trans_type == "收入":
+                    if stage:  # 阶段性项目，删除快捷方式
+                        shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
+                            self.year, self.month, project_name, stage
+                        )
+                        if not shortcut_success:
+                            warning_dialog = self.create_styled_message_box("警告", f"快捷方式删除失败: {shortcut_result}")
+                            warning_dialog.exec_()
+                    else:  # 新项目，删除项目文件夹
+                        delete_success, result = self.file_manager.delete_project_folder(
+                            self.year, self.month, project_name, is_only_project_in_month
+                        )
+                        if not delete_success:
+                            warning_dialog = self.create_styled_message_box("警告", f"项目文件夹删除失败: {result}")
+                            warning_dialog.exec_()
+                else:  # 支出项目，理论上没有文件夹，但仍检查并清理
+                    if stage:  # 阶段性项目，检查并删除可能的快捷方式
+                        shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
+                            self.year, self.month, project_name, stage
+                        )
+                        if not shortcut_success:
+                            warning_dialog = self.create_styled_message_box("警告", f"快捷方式删除失败: {shortcut_result}")
+                            warning_dialog.exec_()
+                    else:  # 新项目，检查并删除可能的项目文件夹
+                        delete_success, result = self.file_manager.delete_project_folder(
+                            self.year, self.month, project_name, is_only_project_in_month
+                        )
+                        if not delete_success:
+                            warning_dialog = self.create_styled_message_box("警告", f"项目文件夹删除失败: {result}")
+                            warning_dialog.exec_()
 
-            if not transaction:
-                QMessageBox.warning(self, "错误", "交易记录不存在！")
-                return
-
-            transaction_id, project_name, stage, trans_type = transaction
-            reply = QMessageBox.question(
-                self, "确认删除",
-                f"确定要删除项目 '{project_name}' 的这条收支记录吗？",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-            )
-            if reply == QMessageBox.Yes:
-                conn = self.db.connect()
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT COUNT(*) 
-                    FROM transactions 
-                    WHERE year_id = (SELECT id FROM years WHERE year = ?) AND month = ?
-                """, (self.year, self.month))
-                total_transactions = cursor.fetchone()[0]
-                cursor.execute("""
-                    SELECT COUNT(*) 
-                    FROM transactions 
-                    WHERE project_id = (SELECT project_id FROM transactions WHERE id = ?) 
-                    AND year_id = (SELECT id FROM years WHERE year = ?) 
-                    AND month = ?
-                """, (transaction_id, self.year, self.month))
-                project_transactions = cursor.fetchone()[0]
-                conn.close()
-                is_only_project_in_month = (project_transactions == 1 and total_transactions == 1)
-                # 删除数据库记录
-                success = self.db.delete_transaction(transaction_id)
-                if success:
-                    # 根据类型和阶段决定是否删除文件夹/快捷方式
-                    if trans_type == "收入":
-                        if stage:  # 阶段性项目，删除快捷方式
-                            shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
-                                self.year, self.month, project_name, stage
-                            )
-                            if not shortcut_success:
-                                QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
-                        else:  # 新项目，删除项目文件夹
-                            delete_success, result = self.file_manager.delete_project_folder(
-                                self.year, self.month, project_name, is_only_project_in_month
-                            )
-                            if not delete_success:
-                                QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
-                    else:  # 支出项目，理论上没有文件夹，但仍检查并清理
-                        if stage:  # 阶段性项目，检查并删除可能的快捷方式
-                            shortcut_success, shortcut_result = self.file_manager.delete_shortcut(
-                                self.year, self.month, project_name, stage
-                            )
-                            if not shortcut_success:
-                                QMessageBox.warning(self, "警告", f"快捷方式删除失败: {shortcut_result}")
-                        else:  # 新项目，检查并删除可能的项目文件夹
-                            delete_success, result = self.file_manager.delete_project_folder(
-                                self.year, self.month, project_name, is_only_project_in_month
-                            )
-                            if not delete_success:
-                                QMessageBox.warning(self, "警告", f"项目文件夹删除失败: {result}")
-
-                    QMessageBox.information(self, "成功", "收支记录删除成功！")
-                    self.load_transactions()
-                else:
-                    QMessageBox.warning(self, "失败", "收支记录删除失败！")
+                info_dialog = self.create_styled_message_box("成功", "收支记录删除成功！")
+                info_dialog.exec_()
+                self.load_transactions()
+            else:
+                warning_dialog = self.create_styled_message_box("失败", "收支记录删除失败！")
+                warning_dialog.exec_()
 
     def show_detail_dialog(self, transaction_id):
             # 通过 transaction_id 获取交易记录
@@ -1029,41 +1121,68 @@ class MonthlyWindow(QMainWindow):
         transaction_year = int(self.year)
         transaction_month = int(self.month)
         if transaction_year > current_year or (transaction_year == current_year and transaction_month > current_month):
-            QMessageBox.warning(self, "错误", f"不能为未来的月份创建项目！当前日期：{current_year}年{current_month}月")
+            error_dialog = self.create_styled_message_box(
+                "错误", f"不能为未来的月份创建项目！当前日期：{current_year}年{current_month}月"
+            )
+            error_dialog.exec_()
             return
+
+        # 输入项目名称
         project_name, ok = QInputDialog.getText(self, "创建新项目", "请输入项目名称：")
         if not ok or not project_name:
             return
+        
+        # 输入金额
         amount, ok = QInputDialog.getDouble(self, "输入金额", "请输入金额：", value=0.0, min=0.01, max=9999999.99, decimals=2)
         if not ok:
             return
+        
+        # 选择类型
         trans_type, ok = QInputDialog.getItem(self, "选择类型", "请选择收支类型：", ["收入", "支出"], 0, False)
         if not ok:
             return
+        
+        # 选择支付方式
         payment_method, ok = QInputDialog.getItem(self, "选择支付方式", "请选择支付方式：",
-                                                  ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
+                                                ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
         if not ok:
             return
+        
+        # 确认项目创建信息弹窗
         confirm_msg = f"项目名称: {project_name}\n金额: {amount}\n类型: {trans_type}\n支付方式: {payment_method}"
-        reply = QMessageBox.question(self, "确认创建", confirm_msg, QMessageBox.Ok | QMessageBox.Cancel)
+        confirm_dialog = self.create_styled_message_box(
+            "确认创建", confirm_msg, buttons=QMessageBox.Ok | QMessageBox.Cancel
+        )
+        reply = confirm_dialog.exec_()
+        
         if reply != QMessageBox.Ok:
             return
+        
         success, project_id = self.db.add_project(project_name, self.year, self.month)
         if success and project_id:
             year_int = int(self.year)
             month_int = int(self.month)
             success = self.db.add_transaction(project_id, amount, trans_type, payment_method, month_int, year_int)
             if success:
-                if trans_type == "收入":  # 仅收入项目创建文件夹
+                if trans_type == "收入":
                     folder_success, result = self.file_manager.create_project_folder(self.year, self.month, project_name)
                     if not folder_success:
-                        QMessageBox.warning(self, "失败", f"创建文件夹失败: {result}")
-                QMessageBox.information(self, "成功", "收支记录创建成功！")
+                        error_dialog = self.create_styled_message_box("失败", f"创建文件夹失败: {result}")
+                        error_dialog.exec_()
+                
+                # 创建成功弹窗
+                success_dialog = self.create_styled_message_box("成功", "收支记录创建成功！")
+                success_dialog.exec_()
+                
                 self.load_transactions()
             else:
-                QMessageBox.warning(self, "失败", "保存收支记录失败！")
+                error_dialog = self.create_styled_message_box("失败", "保存收支记录失败！")
+                error_dialog.exec_()
         else:
-            QMessageBox.warning(self, "失败", f"创建项目失败！请确保年份 {self.year} 已存在。")
+            error_dialog = self.create_styled_message_box(
+                "失败", f"创建项目失败！请确保年份 {self.year} 已存在。"
+            )
+            error_dialog.exec_()
 
     def create_existing_project_transaction(self):
         current_date = datetime.now()
@@ -1072,18 +1191,37 @@ class MonthlyWindow(QMainWindow):
         transaction_year = int(self.year)
         transaction_month = int(self.month)
         if transaction_year > current_year or (transaction_year == current_year and transaction_month > current_month):
-            QMessageBox.warning(self, "错误", f"不能为未来的月份创建收支记录！当前日期：{current_year}年{current_month}月")
+            msg = self.create_styled_message_box(
+                "错误", f"不能为未来的月份创建收支记录！当前日期：{current_year}年{current_month}月"
+            )
+            msg.exec_()
             return
-        # 获取所有年份
+        
+        # 获取年份
         all_years = self.db.get_years()
         years = [year for year in all_years if int(year) <= current_year]
         if not years:
-            QMessageBox.warning(self, "错误", "数据库中没有年份记录，请先创建年份！")
+            msg = self.create_styled_message_box("错误", "数据库中没有年份记录，请先创建年份！")
+            msg.exec_()
             return
-        selected_year, ok = QInputDialog.getItem(self, "选择年份", "请选择项目所属年份：", years, 0, False)
+        
+        # 设置字体为 Microsoft YaHei，20 号（用于 QInputDialog）
+        font = QFont()
+        font.setFamily("Microsoft YaHei, SimSun, Arial")
+        font.setPointSize(20)
+        
+        # 选择年份
+        dialog = QInputDialog(self)
+        dialog.setWindowTitle("选择年份")
+        dialog.setLabelText("请选择项目所属年份：")
+        dialog.setFont(font)
+        dialog.setComboBoxItems(years)
+        dialog.setFixedSize(500, 350)
+        selected_year, ok = dialog.getItem(self, "选择年份", "请选择项目所属年份：", years, 0, False)
         if not ok:
             return
-        # 获取指定年份的非阶段性收入项目
+        
+        # 获取项目
         conn = self.db.connect()
         cursor = conn.cursor()
         cursor.execute("""
@@ -1098,59 +1236,101 @@ class MonthlyWindow(QMainWindow):
         conn.close()
 
         if not projects:
-            QMessageBox.warning(self, "错误", f"{selected_year} 年没有非阶段性的收入类型项目！")
+            msg = self.create_styled_message_box("错误", f"{selected_year} 年没有非阶段性的收入类型项目！")
+            msg.exec_()
             return
+        
         project_names = [p[1] for p in projects]
         project_ids = {p[1]: p[0] for p in projects}
         project_months = {p[1]: p[2] for p in projects}
-        logging.info(f"Projects loaded for {selected_year}: {len(project_names)} items")
-
-        dialog = SearchableComboBoxDialog(project_names, "选择已有项目", "请输入项目名称进行筛选：", self)
+        
+        # 选择项目（SearchableComboBoxDialog）
+        dialog = SearchableComboBoxDialog(project_names, "选择项目", "请输入项目名称进行筛选：", self)
+        dialog.setFont(font)
         if dialog.exec_():
             project_name = dialog.get_selected_item()
             if not project_name:
-                logging.warning("No project selected")
                 return
             project_id = project_ids[project_name]
             project_month = project_months[project_name]
             if project_month is None:
-                QMessageBox.critical(self, "错误", f"项目 {project_name} 的创建月份未定义，请联系管理员检查数据库！")
+                msg = self.create_styled_message_box(
+                    "错误", f"项目 {project_name} 的创建月份未定义，请联系管理员检查数据库！"
+                )
+                msg.exec_()
                 return
-
-            stages = ["第二阶段", "第三阶段", "第四阶段"]
-            stage, ok = QInputDialog.getItem(self, "选择阶段", "请选择项目阶段：", stages, 0, False)
+            
+            # 选择阶段
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("选择阶段")
+            dialog.setLabelText("请选择项目阶段：")
+            dialog.setFont(font)
+            dialog.setComboBoxItems(["第二阶段", "第三阶段", "第四阶段"])
+            dialog.setFixedSize(500, 350)
+            stage, ok = dialog.getItem(self, "选择阶段", "请选择项目阶段：", ["第二阶段", "第三阶段", "第四阶段"], 0, False)
             if not ok:
                 return
             
-            amount, ok = QInputDialog.getDouble(self, "输入金额", "请输入金额（正数）：", value=0.0, min=0.01, max=9999999.99, decimals=2)
+            # 输入金额
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("输入金额")
+            dialog.setLabelText("请输入金额（正数）：")
+            dialog.setFont(font)
+            dialog.setFixedSize(500, 350)
+            amount, ok = dialog.getDouble(self, "输入金额", "请输入金额（正数）：", value=0.0, min=0.01, max=9999999.99, decimals=2)
             if not ok:
                 return
-            trans_type, ok = QInputDialog.getItem(self, "选择类型", "请选择收支类型：", ["收入", "支出"], 0, False)
+            
+            # 选择类型
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("选择类型")
+            dialog.setLabelText("请选择收支类型：")
+            dialog.setFont(font)
+            dialog.setComboBoxItems(["收入", "支出"])
+            dialog.setFixedSize(500, 350)
+            trans_type, ok = dialog.getItem(self, "选择类型", "请选择收支类型：", ["收入", "支出"], 0, False)
             if not ok:
                 return
-            payment_method, ok = QInputDialog.getItem(self, "选择支付方式", "请选择支付方式：",
-                                                    ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
+            
+            # 选择支付方式
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("选择支付方式")
+            dialog.setLabelText("请选择支付方式：")
+            dialog.setFont(font)
+            dialog.setComboBoxItems(["微信", "支付宝", "对公账户", "对私账户", "现金"])
+            dialog.setFixedSize(500, 350)
+            payment_method, ok = dialog.getItem(self, "选择支付方式", "请选择支付方式：",
+                                                ["微信", "支付宝", "对公账户", "对私账户", "现金"], 0, False)
             if not ok:
                 return
+            
+            # 确认项目创建信息弹窗
             confirm_msg = f"项目名称: {project_name}\n阶段: {stage}\n金额: {amount}\n类型: {trans_type}\n支付方式: {payment_method}"
-            reply = QMessageBox.question(self, "确认创建", confirm_msg, QMessageBox.Ok | QMessageBox.Cancel)
+            confirm_dialog = self.create_styled_message_box(
+                "确认创建", confirm_msg, buttons=QMessageBox.Ok | QMessageBox.Cancel
+            )
+            reply = confirm_dialog.exec_()
+            
             if reply != QMessageBox.Ok:
                 return
+            
             # 保存交易记录
             success = self.db.add_transaction(project_id, amount, trans_type, payment_method, self.month, self.year, stage)
             if success:
                 if trans_type == "收入":
                     shortcut_success, result = self.file_manager.create_shortcut(self.year, self.month, project_name, stage, selected_year, project_month)
                     if not shortcut_success:
-                        logging.warning(f"Shortcut creation failed: {result}")
-                        QMessageBox.warning(self, "提示", f"快捷方式创建失败: {result}")
-                QMessageBox.information(self, "成功", "收支记录创建成功！")
+                        msg = self.create_styled_message_box("提示", f"快捷方式创建失败: {result}")
+                        msg.exec_()
+                
+                # 创建成功弹窗
+                msg = self.create_styled_message_box("成功", "收支记录创建成功！")
+                msg.exec_()
+                
                 QTimer.singleShot(0, self.load_transactions)
             else:
-                logging.error("Failed to save transaction")
-                QMessageBox.warning(self, "失败", "保存收支记录失败！")
-        else:
-            logging.info("SearchableComboBoxDialog cancelled")
+                msg = self.create_styled_message_box("失败", "保存收支记录失败！")
+                msg.exec_()
 
     def closeEvent(self, event):
         self.deleteLater()
@@ -1260,6 +1440,23 @@ class SearchableComboBoxDialog(QDialog):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    # 设置全局样式表，美化按钮
+    app.setStyleSheet("""
+        QPushButton {
+            font-family: 'Microsoft YaHei, SimSun, Arial';
+            font-size: 18pt;
+            padding: 5px 15px;
+            background-color: #e0e0e0;
+            border: 1px solid #a0a0a0;
+            border-radius: 5px;
+        }
+        QPushButton:hover {
+            background-color: #d0d0d0;
+        }
+        QPushButton:pressed {
+            background-color: #c0c0c0;
+        }
+    """)
     window = MonthlyWindow("2025", 4)
     window.show()
     sys.exit(app.exec_())
