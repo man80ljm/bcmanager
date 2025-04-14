@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     role TEXT DEFAULT 'user'
 );
-INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '123456', 'admin');
+INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5900145', 'admin');
 CREATE TABLE IF NOT EXISTS years (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year TEXT NOT NULL UNIQUE,
@@ -619,7 +619,7 @@ class DatabaseManager:
 if __name__ == '__main__':
     db = DatabaseManager()
     # 测试用户验证
-    success, user = db.validate_user("admin", "123456")
+    success, user = db.validate_user("admin", "5900145")
     print("验证结果:", success, user)
     success, user = db.validate_user("admin", "wrongpassword")
     print("验证结果:", success, user)

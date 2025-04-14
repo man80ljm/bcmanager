@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 插入一个默认管理员用户（测试用）
-INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '123456', 'admin');
+INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5900145', 'admin');
 
 -- 创建年份表
 CREATE TABLE IF NOT EXISTS years (

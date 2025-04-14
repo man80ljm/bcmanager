@@ -13,14 +13,17 @@ class LoginWindow(QWidget):
         super().__init__()
         self.db = DatabaseManager()  # 初始化数据库
         self.settings = QSettings("MyCompany", "MyApp")  # 初始化设置存储
+        # 临时清除所有设置（仅用于调试）
+        # self.settings.clear()
         self.initUI()
         self.load_saved_credentials()  # 加载保存的凭证
-        # 设置窗口图标
         # 设置窗口图标
         icon_pixmap = QPixmap(':/logo01.png')
         if icon_pixmap.isNull():
             print("警告：无法加载窗口图标 logo01.png")
         self.setWindowIcon(QIcon(icon_pixmap))
+        # 设置光标默认聚焦在密码输入框
+        self.password_input.setFocus()
 
     def initUI(self):
         # 设置窗口标题和大小
@@ -78,6 +81,8 @@ class LoginWindow(QWidget):
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)  # 密码模式，输入显示为星号
         self.password_input.setPlaceholderText('请输入密码')
+        # 绑定回车键到 handle_login
+        self.password_input.returnPressed.connect(self.handle_login)
         password_layout.addWidget(password_label)
         password_layout.addWidget(self.password_input)
         input_layout.addLayout(password_layout)
@@ -105,15 +110,23 @@ class LoginWindow(QWidget):
 
     def load_saved_credentials(self):
         """加载保存的用户名和密码"""
-        username = self.settings.value("username", "")
+        username = self.settings.value("username", "bc") # 默认 bc
         password = self.settings.value("password", "")
         remember = self.settings.value("remember", False, type=bool)
+
+        # 设置用户名（优先使用保存的用户名，否则为 bc）
+        self.username_input.setText(username)
         
-        if username:
+        # 仅当明确保存了用户名且 remember 为 True 时加载凭证
+        if username and remember:
             self.username_input.setText(username)
-        if password and remember:
             self.password_input.setText(password)
             self.remember_check.setChecked(True)
+        else:
+            # 确保复选框未勾选，且不加载密码
+            self.remember_check.setChecked(False)
+            self.username_input.setText(username)  # 可选择保留用户名
+            self.password_input.setText("")
 
     # ui/login_window.py（仅修改 handle_login 方法）
     def handle_login(self):
