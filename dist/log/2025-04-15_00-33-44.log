@@ -1,0 +1,35 @@
+2025-04-15 00:33:44,204 - INFO - 程序启动，日志文件：log\2025-04-15_00-33-44.log
+2025-04-15 00:33:44,218 - INFO - 未找到初始数据库文件 project_accounting.db，将创建新数据库
+2025-04-15 00:33:44,218 - INFO - 创建数据库文件：D:\bcmanager\dist\project_accounting.db
+2025-04-15 00:33:44,253 - INFO - 数据库初始化成功
+2025-04-15 00:33:49,355 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:33:49,357 - INFO - remarks 表结构升级完成！
+2025-04-15 00:33:49,368 - INFO - 数据库初始化成功
+2025-04-15 00:33:55,874 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:33:55,875 - INFO - remarks 表结构升级完成！
+2025-04-15 00:33:55,919 - INFO - 数据库初始化成功
+2025-04-15 00:33:56,759 - INFO - Opening monthly window for 2024-1
+2025-04-15 00:33:56,760 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:33:56,761 - INFO - remarks 表结构升级完成！
+2025-04-15 00:33:56,771 - INFO - 数据库初始化成功
+2025-04-15 00:34:04,395 - INFO - Created styled message box: title=确认创建, text=项目名称: 让人
+金额: 55555.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-15 00:34:05,444 - INFO - 文件夹创建成功: 项目资料\2024年\01月\让人
+2025-04-15 00:34:05,445 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-15 00:34:08,663 - INFO - Opening monthly window for 2024-2
+2025-04-15 00:34:08,664 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:34:08,666 - INFO - remarks 表结构升级完成！
+2025-04-15 00:34:08,711 - INFO - 数据库初始化成功
+2025-04-15 00:34:14,759 - INFO - Accepted item: 让人
+2025-04-15 00:34:19,396 - INFO - Created styled message box: title=确认创建, text=项目名称: 让人
+阶段: 第二阶段
+金额: 5554.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-15 00:34:20,185 - INFO - 创建快捷方式: project_name=让人, original_path=项目资料\2024年\01月\让人
+2025-04-15 00:34:20,186 - INFO - Ensured base_path exists: 项目资料\2024年\02月
+2025-04-15 00:34:20,186 - ERROR - 未安装 pywin32，Windows 快捷方式创建失败
+2025-04-15 00:34:20,187 - INFO - Created styled message box: title=提示, text=快捷方式创建失败: 请安装 pywin32 以支持 Windows 快捷方式, width=500
+2025-04-15 00:35:43,467 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400

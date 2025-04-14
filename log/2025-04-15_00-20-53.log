@@ -1,0 +1,37 @@
+2025-04-15 00:20:53,062 - INFO - 程序启动，日志文件：log\2025-04-15_00-20-53.log
+2025-04-15 00:20:53,073 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:20:53,074 - INFO - remarks 表结构升级完成！
+2025-04-15 00:20:53,087 - INFO - 数据库初始化成功
+2025-04-15 00:20:58,757 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:20:58,759 - INFO - remarks 表结构升级完成！
+2025-04-15 00:20:58,804 - INFO - 数据库初始化成功
+2025-04-15 00:21:07,100 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:21:07,133 - INFO - remarks 表结构升级完成！
+2025-04-15 00:21:07,144 - INFO - 数据库初始化成功
+2025-04-15 00:21:08,654 - INFO - Opening monthly window for 2024-1
+2025-04-15 00:21:08,655 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:21:08,657 - INFO - remarks 表结构升级完成！
+2025-04-15 00:21:08,702 - INFO - 数据库初始化成功
+2025-04-15 00:21:16,261 - INFO - Created styled message box: title=确认创建, text=项目名称: 电动车
+金额: 10000.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-15 00:21:16,607 - INFO - 文件夹创建成功: 项目资料\2024年\01月\电动车
+2025-04-15 00:21:16,608 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-15 00:21:26,775 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:21:26,777 - INFO - remarks 表结构升级完成！
+2025-04-15 00:21:26,822 - INFO - 数据库初始化成功
+2025-04-15 00:21:28,430 - INFO - Opening monthly window for 2025-2
+2025-04-15 00:21:28,431 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 00:21:28,432 - INFO - remarks 表结构升级完成！
+2025-04-15 00:21:28,442 - INFO - 数据库初始化成功
+2025-04-15 00:21:36,807 - INFO - Accepted item: 电动车
+2025-04-15 00:21:41,708 - INFO - Created styled message box: title=确认创建, text=项目名称: 电动车
+阶段: 第二阶段
+金额: 5000.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-15 00:21:42,696 - INFO - 创建快捷方式: project_name=电动车, original_path=项目资料\2024年\01月\电动车
+2025-04-15 00:21:42,697 - INFO - Ensured base_path exists: 项目资料\2025年\02月
+2025-04-15 00:21:42,880 - INFO - 快捷方式创建成功: 项目资料\2025年\02月\电动车（第二阶段）.lnk, 目标路径: D:\bcmanager\项目资料\2024年\01月\电动车
+2025-04-15 00:21:42,881 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
