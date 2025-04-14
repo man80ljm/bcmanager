@@ -5,64 +5,127 @@ import os
 from datetime import datetime
 import logging
 import sys
+import traceback
+
+# 默认 schema（备用，防止 schema.sql 缺失）
+DEFAULT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'user'
+);
+INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '123456', 'admin');
+CREATE TABLE IF NOT EXISTS years (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    year_id INTEGER,
+    month INTEGER CHECK (month BETWEEN 1 AND 12),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (year_id) REFERENCES years(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER,
+    amount REAL NOT NULL,
+    initial_amount REAL NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('收入', '支出')),
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('微信', '支付宝', '对公账户', '对私账户', '现金')),
+    stage TEXT,
+    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year_id INTEGER,
+    created_at TEXT NOT NULL,
+    status TEXT DEFAULT '未结项' CHECK (status IN ('未结项', '已结项')),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (year_id) REFERENCES years(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS remarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER UNIQUE,
+    content TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS expense_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('收入', '支出')),
+    amount REAL NOT NULL,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+);
+"""
 
 class DatabaseManager:
-    def __init__(self, db_path="project_accounting.db"):
-        # 获取资源基础路径（临时目录或项目根目录）
-        # 开发环境：db_manager.py 在 database/ 中，退一级到 D:\bcmanager\
-        # 打包环境：sys._MEIPASS 是临时目录根路径
+    def __init__(self, db_path="project_accounting.db", strict_schema=False):
+        # 设置统一日志
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+        # 获取资源基础路径
         self.base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        print(f"base_path: {self.base_path}")  # 调试
+        logging.debug(f"base_path: {self.base_path}")  # 修复：print 改为 logging
 
-        # 调试：列出临时目录内容
+        # 调试打包环境
         if hasattr(sys, '_MEIPASS'):
-            print(f"临时目录内容: {os.listdir(self.base_path)}")
+            logging.debug(f"临时目录内容: {os.listdir(self.base_path)}")
             database_dir = os.path.join(self.base_path, "database")
             if os.path.exists(database_dir):
-                print(f"database 目录内容: {os.listdir(database_dir)}")
+                logging.debug(f"database 目录内容: {os.listdir(database_dir)}")
             else:
-                print("database 目录不存在！")
-                # 尝试创建 database/ 目录并移动 schema.sql
+                logging.warning("database 目录不存在！")
                 if "schema.sql" in os.listdir(self.base_path):
-                    os.makedirs(database_dir, exist_ok=True)
-                    import shutil
-                    shutil.move(
-                        os.path.join(self.base_path, "schema.sql"),
-                        os.path.join(database_dir, "schema.sql")
-                    )
-                    print("已将 schema.sql 移动到 database/ 目录")
+                    try:
+                        os.makedirs(database_dir, exist_ok=True)
+                        import shutil
+                        shutil.move(
+                            os.path.join(self.base_path, "schema.sql"),
+                            os.path.join(database_dir, "schema.sql")
+                        )
+                        logging.info("已将 schema.sql 移动到 database/ 目录")
+                    except Exception as e:
+                        logging.error(f"移动 schema.sql 失败: {str(e)}")
 
-        # 调试：列出临时目录内容
-        if hasattr(sys, '_MEIPASS'):
-            print(f"临时目录内容: {os.listdir(self.base_path)}")
-            database_dir = os.path.join(self.base_path, "database")
-            if os.path.exists(database_dir):
-                print(f"database 目录内容: {os.listdir(database_dir)}")
-            else:
-                print("database 目录不存在！")
-
-        # 获取 exe 所在目录（运行时的当前工作目录）
+        # 设置数据库路径
         exe_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        # 优先使用 exe 所在目录的数据库
         self.db_path = os.path.join(exe_dir, db_path)
-        print(f"db_path: {self.db_path}")  # 调试
+        logging.debug(f"db_path: {self.db_path}")
         if not os.path.exists(self.db_path):
-            # 如果 exe 目录没有数据库，尝试从临时目录复制
             temp_db_path = os.path.join(self.base_path, db_path)
             if os.path.exists(temp_db_path):
-                import shutil
-                shutil.copy(temp_db_path, self.db_path)
+                try:
+                    import shutil
+                    shutil.copy(temp_db_path, self.db_path)
+                    logging.info(f"从 {temp_db_path} 复制数据库到 {self.db_path}")
+                except Exception as e:
+                    logging.error(f"复制数据库失败: {str(e)}")
             else:
-                print(f"未找到初始数据库文件 {db_path}，将创建新数据库")
-        
-        # schema.sql 路径：从 base_path 拼接 database/schema.sql
-        self.schema_path = os.path.join(self.base_path, "database", "schema.sql")
-        print(f"schema_path: {self.schema_path}")  # 调试
-        if not os.path.exists(self.schema_path):
-            raise FileNotFoundError(f"未找到 schema.sql 文件，路径：{self.schema_path}")
+                logging.info(f"未找到初始数据库文件 {db_path}，将创建新数据库")
 
-        self.init_database()
-        self.verify_tables()
+        # 设置 schema.sql 路径
+        self.schema_path = os.path.join(self.base_path, "database", "schema.sql")
+        logging.debug(f"schema_path: {self.schema_path}")
+
+        # 保存 strict_schema
+        self.strict_schema = strict_schema  # 修复：正确保存参数
+        self._year_cache = None  # 初始化缓存
+
+        try:
+            self.init_database()
+            self.verify_tables()
+        except Exception as e:
+            logging.error(f"数据库初始化失败: {str(e)}\n{traceback.format_exc()}")
+            raise RuntimeError(f"无法初始化数据库，请检查日志并修复问题：{str(e)}")  # 改进：更友好错误
+
+    def connect(self):
+        """创建并返回数据库连接，启用外键约束"""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")  # 修复：启用外键
+        return conn
     
     def verify_tables(self):
         required_tables = ["users", "years", "projects", "transactions", "remarks", "expense_details"]
@@ -77,140 +140,149 @@ class DatabaseManager:
 
     def init_database(self):
         if not os.path.exists(self.db_path):
-            print(f"创建数据库文件：{self.db_path}")
+            logging.info(f"创建数据库文件：{self.db_path}")
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with self.connect() as conn:
+            cursor = conn.cursor()
+            conn.execute("BEGIN TRANSACTION")
+            try:
+                # 检查并升级 projects 表
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
+                projects_table_exists = cursor.fetchone() is not None
+                if projects_table_exists:
+                    cursor.execute("PRAGMA table_info(projects)")
+                    columns = [col[1] for col in cursor.fetchall()]
+                    if 'month' not in columns:
+                        logging.info("projects 表缺少 month 列，正在升级表结构...")
+                        cursor.execute("""
+                            CREATE TABLE projects_temp (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                name TEXT NOT NULL,
+                                year_id INTEGER,
+                                month INTEGER CHECK (month BETWEEN 1 AND 12),
+                                created_at TEXT NOT NULL,
+                                FOREIGN KEY (year_id) REFERENCES years(id) ON DELETE CASCADE
+                            )
+                        """)
+                        cursor.execute("""
+                            INSERT INTO projects_temp (id, name, year_id, created_at)
+                            SELECT id, name, year_id, created_at FROM projects
+                        """)
+                        cursor.execute("DROP TABLE projects")
+                        cursor.execute("ALTER TABLE projects_temp RENAME TO projects")
+                        logging.info("projects 表结构升级完成！")
 
-        # 检查 projects 表是否存在
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
-        projects_table_exists = cursor.fetchone() is not None
+                # 检查并升级 transactions 表
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")
+                transactions_table_exists = cursor.fetchone() is not None
+                if transactions_table_exists:
+                    cursor.execute("PRAGMA table_info(transactions)")
+                    columns = [col[1] for col in cursor.fetchall()]
+                    if 'status' not in columns:
+                        logging.info("transactions 表缺少 status 列，正在升级表结构...")
+                        cursor.execute("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT '未结项' CHECK (status IN ('未结项', '已结项'))")
+                        logging.info("transactions 表结构升级完成！")
+                    if 'initial_amount' not in columns:
+                        logging.info("transactions 表缺少 initial_amount 列，正在升级表结构...")
+                        cursor.execute("ALTER TABLE transactions ADD COLUMN initial_amount REAL NOT NULL DEFAULT 0")
+                        cursor.execute("UPDATE transactions SET initial_amount = amount")
+                        logging.info("transactions 表结构升级完成！")
+                    if 'stage' not in columns:
+                        logging.info("transactions 表缺少 stage 列，正在升级表结构...")
+                        cursor.execute("ALTER TABLE transactions ADD COLUMN stage TEXT")
+                        logging.info("transactions 表结构升级完成！")
 
-        if projects_table_exists:
-            cursor.execute("PRAGMA table_info(projects)")
-            columns = [col[1] for col in cursor.fetchall()]
-            if 'month' not in columns:
-                print("projects 表缺少 month 列，正在升级表结构...")
-                cursor.execute("""
-                    CREATE TABLE projects_temp (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        year_id INTEGER,
-                        month INTEGER CHECK (month BETWEEN 1 AND 12),
-                        created_at TEXT NOT NULL,
-                        FOREIGN KEY (year_id) REFERENCES years(id)
-                    )
-                """)
-                cursor.execute("""
-                    INSERT INTO projects_temp (id, name, year_id, created_at)
-                    SELECT id, name, year_id, created_at FROM projects
-                """)
-                cursor.execute("DROP TABLE projects")
-                cursor.execute("ALTER TABLE projects_temp RENAME TO projects")
-                print("projects 表结构升级完成！")
+                # 检查并升级 remarks 表
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='remarks'")
+                remarks_table_exists = cursor.fetchone() is not None
+                if remarks_table_exists:
+                    cursor.execute("PRAGMA table_info(remarks)")
+                    columns = [col for col in cursor.fetchall()]
+                    transaction_id_unique = False
+                    for col in columns:
+                        if col[1] == "transaction_id" and col[5] == 1:
+                            transaction_id_unique = True
+                            break
+                    if not transaction_id_unique:
+                        logging.info("remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...")
+                        cursor.execute("""
+                            CREATE TABLE remarks_temp (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                transaction_id INTEGER UNIQUE,
+                                content TEXT,
+                                updated_at TEXT NOT NULL,
+                                FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+                            )
+                        """)
+                        cursor.execute("""
+                            INSERT INTO remarks_temp (id, transaction_id, content, updated_at)
+                            SELECT id, transaction_id, content, updated_at
+                            FROM remarks
+                            WHERE id IN (
+                                SELECT MAX(id)
+                                FROM remarks
+                                GROUP BY transaction_id
+                            )
+                        """)
+                        cursor.execute("DROP TABLE remarks")
+                        cursor.execute("ALTER TABLE remarks_temp RENAME TO remarks")
+                        logging.info("remarks 表结构升级完成！")
 
-        # 检查 transactions 表是否存在
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")
-        transactions_table_exists = cursor.fetchone() is not None
+                # 检查 expense_details 表
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expense_details'")
+                expense_details_table_exists = cursor.fetchone() is not None
 
-        if transactions_table_exists:
-            cursor.execute("PRAGMA table_info(transactions)")
-            columns = [col[1] for col in cursor.fetchall()]
-            if 'status' not in columns:
-                print("transactions 表缺少 status 列，正在升级表结构...")
-                cursor.execute("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT '未结项' CHECK (status IN ('未结项', '已结项'))")
-                print("transactions 表结构升级完成！")
-            if 'initial_amount' not in columns:
-                print("transactions 表缺少 initial_amount 列，正在升级表结构...")
-                cursor.execute("ALTER TABLE transactions ADD COLUMN initial_amount REAL NOT NULL DEFAULT 0")
-                # 将现有记录的 amount 复制到 initial_amount
-                cursor.execute("UPDATE transactions SET initial_amount = amount")
-                print("transactions 表结构升级完成！")
-            if 'stage' not in columns:  # 新增对 stage 列的检查
-                print("transactions 表缺少 stage 列，正在升级表结构...")
-                cursor.execute("ALTER TABLE transactions ADD COLUMN stage TEXT")
-                print("transactions 表结构升级完成！")
+                # 加载 schema
+                schema = ""
+                if self.strict_schema and not os.path.exists(self.schema_path):
+                    raise FileNotFoundError(f"未找到 schema.sql 文件，路径：{self.schema_path}")
+                if os.path.exists(self.schema_path):
+                    try:
+                        with open(self.schema_path, "r", encoding="utf-8") as f:
+                            schema = f.read()
+                    except Exception as e:
+                        logging.error(f"读取 schema.sql 失败: {str(e)}")
+                        schema = DEFAULT_SCHEMA
+                else:
+                    logging.warning("schema.sql 不存在，使用默认 schema")
+                    schema = DEFAULT_SCHEMA
 
-        # 检查 remarks 表是否存在，并确保 transaction_id 有 UNIQUE 约束
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='remarks'")
-        remarks_table_exists = cursor.fetchone() is not None
-
-        if remarks_table_exists:
-            cursor.execute("PRAGMA table_info(remarks)")
-            columns = [col for col in cursor.fetchall()]
-            transaction_id_unique = False
-            for col in columns:
-                if col[1] == "transaction_id" and col[5] == 1:
-                    transaction_id_unique = True
-                    break
-            if not transaction_id_unique:
-                print("remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...")
-                cursor.execute("""
-                    CREATE TABLE remarks_temp (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        transaction_id INTEGER UNIQUE,
-                        content TEXT,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (transaction_id) REFERENCES transactions(id)
-                    )
-                """)
-                cursor.execute("""
-                    INSERT INTO remarks_temp (id, transaction_id, content, updated_at)
-                    SELECT id, transaction_id, content, updated_at
-                    FROM remarks
-                    WHERE id IN (
-                        SELECT MAX(id)
-                        FROM remarks
-                        GROUP BY transaction_id
-                    )
-                """)
-                cursor.execute("DROP TABLE remarks")
-                cursor.execute("ALTER TABLE remarks_temp RENAME TO remarks")
-                print("remarks 表结构升级完成！")
-
-        # 检查 expense_details 表是否存在
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expense_details'")
-        expense_details_table_exists = cursor.fetchone() is not None
-
-        # 读取 schema.sql 文件
-        with open(self.schema_path, "r", encoding="utf-8") as f:
-            schema_lines = f.read().splitlines()
-
-        # 动态过滤表定义
-        filtered_lines = []
-        skip = False
-        skip_table = None
-        for line in schema_lines:
-            if line.strip().startswith("CREATE TABLE IF NOT EXISTS projects") and projects_table_exists:
-                skip = True
-                skip_table = "projects"
-                continue
-            elif line.strip().startswith("CREATE TABLE IF NOT EXISTS transactions") and transactions_table_exists:
-                skip = True
-                skip_table = "transactions"
-                continue
-            elif line.strip().startswith("CREATE TABLE IF NOT EXISTS remarks") and remarks_table_exists:
-                skip = True
-                skip_table = "remarks"
-                continue
-            elif line.strip().startswith("CREATE TABLE IF NOT EXISTS expense_details") and expense_details_table_exists:
-                skip = True
-                skip_table = "expense_details"
-                continue
-
-            if skip and line.strip().endswith(";"):
+                # 过滤已存在表
+                schema_lines = schema.splitlines()
+                filtered_lines = []
                 skip = False
-                skip_table = None
-                continue
+                for line in schema_lines:
+                    if line.strip().startswith("CREATE TABLE IF NOT EXISTS projects") and projects_table_exists:
+                        skip = True
+                        continue
+                    elif line.strip().startswith("CREATE TABLE IF NOT EXISTS transactions") and transactions_table_exists:
+                        skip = True
+                        continue
+                    elif line.strip().startswith("CREATE TABLE IF NOT EXISTS remarks") and remarks_table_exists:
+                        skip = True
+                        continue
+                    elif line.strip().startswith("CREATE TABLE IF NOT EXISTS expense_details") and expense_details_table_exists:
+                        skip = True
+                        continue
+                    if skip and line.strip().endswith(";"):
+                        skip = False
+                        continue
+                    if not skip:
+                        filtered_lines.append(line)
+                schema = "\n".join(filtered_lines)
+                cursor.executescript(schema)
 
-            if not skip:
-                filtered_lines.append(line)
+                # 创建索引
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_transactions_year_month ON transactions(year_id, month)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_remarks_transaction_id ON remarks(transaction_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_expense_details_transaction_id ON expense_details(transaction_id)")
 
-        schema = "\n".join(filtered_lines)
-        cursor.executescript(schema)
-
-        conn.commit()
-        conn.close()
+                conn.commit()
+                logging.info("数据库初始化成功")
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"数据库初始化失败: {str(e)}\n{traceback.format_exc()}")
+                raise
 
     def add_transaction(self, project_id, amount, trans_type, payment_method, month, year, stage=None):
         conn = self.connect()
@@ -270,10 +342,6 @@ class DatabaseManager:
         conn.close()
         logging.info(f"Calculated details_total for transaction_id={transaction_id}: {total}")
         return total
-
-    def connect(self):
-        """创建并返回数据库连接"""
-        return sqlite3.connect(self.db_path)
 
     def validate_user(self, username, password):
         """验证用户名和密码是否匹配"""
