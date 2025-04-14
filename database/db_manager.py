@@ -197,11 +197,18 @@ class DatabaseManager:
                 remarks_table_exists = cursor.fetchone() is not None
                 if remarks_table_exists:
                     cursor.execute("PRAGMA table_info(remarks)")
-                    columns = [col for col in cursor.fetchall()]
+                    columns = cursor.fetchall()
                     transaction_id_unique = False
                     for col in columns:
-                        if col[1] == "transaction_id" and col[5] == 1:
-                            transaction_id_unique = True
+                        if col[1] == "transaction_id":
+                            # 检查 UNIQUE 约束
+                            cursor.execute("PRAGMA index_list(remarks)")
+                            indexes = cursor.fetchall()
+                            for index in indexes:
+                                cursor.execute(f"PRAGMA index_info({index[1]})")
+                                if any(col[1] == "transaction_id" for col in cursor.fetchall()):
+                                    transaction_id_unique = True
+                                    break
                             break
                     if not transaction_id_unique:
                         logging.info("remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...")
@@ -218,11 +225,9 @@ class DatabaseManager:
                             INSERT INTO remarks_temp (id, transaction_id, content, updated_at)
                             SELECT id, transaction_id, content, updated_at
                             FROM remarks
-                            WHERE id IN (
-                                SELECT MAX(id)
-                                FROM remarks
-                                GROUP BY transaction_id
-                            )
+                            WHERE transaction_id IS NOT NULL
+                            GROUP BY transaction_id
+                            HAVING MAX(id)
                         """)
                         cursor.execute("DROP TABLE remarks")
                         cursor.execute("ALTER TABLE remarks_temp RENAME TO remarks")

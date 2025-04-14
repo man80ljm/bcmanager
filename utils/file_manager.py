@@ -11,10 +11,13 @@ class FileManager:
         self.backup_dir = backup_dir
         self.base_dir = base_dir  # 添加这一行
         # 确保备份目录存在
-        if not os.path.exists(self.backup_dir):
-            os.makedirs(self.backup_dir)
-        # 设置日志
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        try:
+            if not os.path.exists(self.backup_dir):
+                os.makedirs(self.backup_dir, exist_ok=True)
+            logging.debug(f"备份目录已确认: {self.backup_dir}")
+        except OSError as e:
+            logging.error(f"无法创建备份目录 {self.backup_dir}: {str(e)}")
+            raise RuntimeError(f"无法创建备份目录: {str(e)}")
 
     def backup_database(self):
         """备份数据库文件到 db_backup 文件夹"""
@@ -78,7 +81,11 @@ class FileManager:
                 return True, f"快捷方式已存在: {shortcut_path}"
 
             if os.name == 'nt':  # Windows
-                import win32com.client
+                try:
+                    import win32com.client
+                except ImportError:
+                    logging.error("未安装 pywin32，Windows 快捷方式创建失败")
+                    return False, "请安装 pywin32 以支持 Windows 快捷方式"
                 shell = win32com.client.Dispatch("WScript.Shell")
                 shortcut = shell.CreateShortCut(shortcut_path)
                 target_path = os.path.abspath(original_path).replace('/', '\\')
@@ -105,11 +112,9 @@ class FileManager:
             os.makedirs(os.path.join(base_path, "交付文件"), exist_ok=True)
             os.makedirs(os.path.join(base_path, "相关资料"), exist_ok=True)
             logging.info(f"文件夹创建成功: {base_path}")
-            print(f"Created project folder: {base_path}")  # 添加日志
             return True, base_path
         except Exception as e:
             logging.error(f"创建文件夹失败: {str(e)}")
-            print(f"Failed to create project folder: {str(e)}")  # 添加日志
             return False, str(e)
         
     def rename_project_folder(self, year, month, old_project_name, new_project_name):
@@ -180,7 +185,11 @@ class FileManager:
 
                         # 更新快捷方式的目标路径
                         if os.name == 'nt':  # Windows
-                            import win32com.client
+                            try:
+                                import win32com.client
+                            except ImportError:
+                                logging.error("未安装 pywin32，Windows 快捷方式创建失败")
+                                return False, "请安装 pywin32 以支持 Windows 快捷方式"
                             shell = win32com.client.Dispatch("WScript.Shell")
                             shortcut = shell.CreateShortCut(new_shortcut_path)
                             new_target_path = os.path.join(self.base_dir, f"{project_year}年", f"{str(project_month).zfill(2)}月", new_project_name)
