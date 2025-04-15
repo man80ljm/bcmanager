@@ -1,0 +1,17 @@
+2025-04-15 08:06:24,287 - INFO - 程序启动，日志文件：log\2025-04-15_08-06-24.log
+2025-04-15 08:06:24,344 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 08:06:24,346 - INFO - remarks 表结构升级完成！
+2025-04-15 08:06:24,359 - INFO - 数据库初始化成功
+2025-04-15 08:06:40,663 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 08:06:40,664 - INFO - remarks 表结构升级完成！
+2025-04-15 08:06:40,677 - INFO - 数据库初始化成功
+2025-04-15 08:06:54,218 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 08:06:54,220 - INFO - remarks 表结构升级完成！
+2025-04-15 08:06:54,232 - INFO - 数据库初始化成功
+2025-04-15 08:06:55,442 - INFO - Opening monthly window for 2024-6
+2025-04-15 08:06:55,442 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 08:06:55,444 - INFO - remarks 表结构升级完成！
+2025-04-15 08:06:55,456 - INFO - 数据库初始化成功
+2025-04-15 08:07:31,473 - INFO - Showing filter dialog
+2025-04-15 08:07:44,566 - INFO - Year: 2024, Month: 1, Total Income: 10000.0, Total Expense: 0, Net Income: 10000.0
+2025-04-15 08:07:44,582 - INFO - 成功导出 2024 年的数据到 exports\2024_transactions.xlsx，耗时 0.03 秒

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     role TEXT DEFAULT 'user'
 );
-INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5900145', 'admin');
+
 CREATE TABLE IF NOT EXISTS years (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year TEXT NOT NULL UNIQUE,
@@ -237,6 +237,21 @@ class DatabaseManager:
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expense_details'")
                 expense_details_table_exists = cursor.fetchone() is not None
 
+                # 新增：检查并升级 users 表中的密码
+                import hashlib
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+                users_table_exists = cursor.fetchone() is not None
+                if users_table_exists:
+                    cursor.execute("SELECT username, password FROM users")
+                    users = cursor.fetchall()
+                    for username, password in users:
+                        # 如果密码是明文（假设明文密码长度小于 50，而哈希密码是固定长度 64）
+                        if len(password) < 50 or password == '5900145':
+                            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+                            cursor.execute("UPDATE users SET password = ? WHERE username = ?",
+                                        (hashed_password, username))
+                            logging.info(f"用户 {username} 的密码已从明文升级为哈希值")
+
                 # 加载 schema
                 schema = ""
                 if self.strict_schema and not os.path.exists(self.schema_path):
@@ -348,13 +363,13 @@ class DatabaseManager:
         logging.info(f"Calculated details_total for transaction_id={transaction_id}: {total}")
         return total
 
-    def validate_user(self, username, password):
+    def validate_user(self, username, hashed_password):
         """验证用户名和密码是否匹配"""
         conn = self.connect()
         cursor = conn.cursor()
 
         # 查询用户
-        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hashed_password))
         user = cursor.fetchone()
 
         conn.close()

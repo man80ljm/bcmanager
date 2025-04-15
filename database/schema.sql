@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS users (
 -- 插入一个默认管理员用户（测试用）
 INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5900145', 'admin');
 
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'user'
+);
+
 -- 创建年份表
 CREATE TABLE IF NOT EXISTS years (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
