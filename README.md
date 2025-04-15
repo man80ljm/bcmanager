@@ -1,8 +1,11 @@
 
-
+使用：pyrcc5 resource.qrc -o resource.py
+编译qrc文件
 
 打包命令：
 pyinstaller --add-data "database\schema.sql;database" --icon=logo.ico --hidden-import numpy --hidden-import pandas --hidden-import win32com --hidden-import pywin32 --hidden-import PyQt5.QtWidgets --hidden-import resources -F -w main.py
+
+
 
 打包需要：pip install --upgrade pyinstaller
 pip install --upgrade pywin32

@@ -1,0 +1,34 @@
+2025-04-15 20:30:10,766 - INFO - 程序启动，日志文件：log\2025-04-15_20-30-10.log
+2025-04-15 20:30:10,766 - INFO - 用户指南文件 UserGuide.txt 已存在，跳过生成
+2025-04-15 20:30:10,777 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:30:10,778 - INFO - remarks 表结构升级完成！
+2025-04-15 20:30:10,788 - INFO - 默认账户检查 - 用户名: bc, 数据: (1, 'bc', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'admin', '你的名字是什么？', '018a745d89ae6ae8a03db158b49513b36eda7ec919adc2cc00a705eb5359bf46')
+2025-04-15 20:30:10,791 - INFO - 数据库初始化成功
+2025-04-15 20:30:10,919 - INFO - 加载保存的凭据 - 用户名: , 记住我: False
+2025-04-15 20:30:10,919 - INFO - 应用窗口标题: 本纯设计
+2025-04-15 20:30:10,934 - INFO - 应用窗口图标: D:/bcmanager/logo01.png
+2025-04-15 20:30:10,935 - INFO - 读取 Logo 路径: D:/bcmanager/logo.png
+2025-04-15 20:30:10,947 - INFO - 应用新 Logo: D:/bcmanager/logo.png
+2025-04-15 20:30:18,618 - INFO - 用户 bc 密码已重置为默认值
+2025-04-15 20:30:27,454 - INFO - 登录尝试 - 用户名: bc
+2025-04-15 20:30:27,455 - INFO - 验证结果: True
+2025-04-15 20:30:27,865 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:30:27,867 - INFO - remarks 表结构升级完成！
+2025-04-15 20:30:27,875 - INFO - 默认账户检查 - 用户名: bc, 数据: (1, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', '你的名字是什么？', '018a745d89ae6ae8a03db158b49513b36eda7ec919adc2cc00a705eb5359bf46')
+2025-04-15 20:30:27,880 - INFO - 数据库初始化成功
+2025-04-15 20:30:41,153 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:30:41,155 - INFO - remarks 表结构升级完成！
+2025-04-15 20:30:41,163 - INFO - 默认账户检查 - 用户名: bc, 数据: (1, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', '你的名字是什么？', '018a745d89ae6ae8a03db158b49513b36eda7ec919adc2cc00a705eb5359bf46')
+2025-04-15 20:30:41,167 - INFO - 数据库初始化成功
+2025-04-15 20:30:42,101 - INFO - Opening monthly window for 2025-1
+2025-04-15 20:30:42,102 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:30:42,104 - INFO - remarks 表结构升级完成！
+2025-04-15 20:30:42,111 - INFO - 默认账户检查 - 用户名: bc, 数据: (1, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', '你的名字是什么？', '018a745d89ae6ae8a03db158b49513b36eda7ec919adc2cc00a705eb5359bf46')
+2025-04-15 20:30:42,116 - INFO - 数据库初始化成功
+2025-04-15 20:30:57,624 - INFO - Created styled message box: title=确认创建, text=项目名称: 充电器
+金额: 5000.0
+类型: 收入
+支付方式: 微信, width=500
+2025-04-15 20:30:58,545 - INFO - 文件夹创建成功: 项目资料\2025年\01月\充电器
+2025-04-15 20:30:58,546 - INFO - Created styled message box: title=成功, text=收支记录创建成功！, width=400
+2025-04-15 20:31:04,806 - INFO - Database backed up to db_backup\project_accounting_20250415203104.db

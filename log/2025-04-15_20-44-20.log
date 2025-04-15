@@ -1,0 +1,22 @@
+2025-04-15 20:44:20,009 - INFO - 程序启动，日志文件：log\2025-04-15_20-44-20.log
+2025-04-15 20:44:20,009 - INFO - 用户指南文件 UserGuide.txt 已存在，跳过生成
+2025-04-15 20:44:20,020 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:44:20,021 - INFO - remarks 表结构升级完成！
+2025-04-15 20:44:20,030 - INFO - 默认账户检查 - 用户名: bc, 数据: (39, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', None, None)
+2025-04-15 20:44:20,034 - INFO - 数据库初始化成功
+2025-04-15 20:44:20,160 - INFO - 加载保存的凭据 - 用户名: , 记住我: False
+2025-04-15 20:44:20,161 - INFO - 应用窗口标题: 本纯设计
+2025-04-15 20:44:20,176 - INFO - 应用窗口图标: D:/bcmanager/logo01.png
+2025-04-15 20:44:20,177 - INFO - 读取 Logo 路径: D:/bcmanager/logo.png
+2025-04-15 20:44:20,189 - INFO - 应用新 Logo: D:/bcmanager/logo.png
+2025-04-15 20:44:27,147 - INFO - 应用窗口标题: 本纯设计
+2025-04-15 20:44:27,155 - INFO - 应用窗口图标: D:/bcmanager/logo01.png
+2025-04-15 20:44:27,156 - INFO - 读取 Logo 路径: D:/bcmanager/logo.png
+2025-04-15 20:44:27,156 - INFO - 应用新 Logo: D:/bcmanager/logo.png
+2025-04-15 20:45:32,801 - ERROR - 密码重置失败: UNIQUE constraint failed: users.username
+2025-04-15 20:45:44,282 - INFO - 登录尝试 - 用户名: bc
+2025-04-15 20:45:44,282 - INFO - 验证结果: True
+2025-04-15 20:45:44,688 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 20:45:44,690 - INFO - remarks 表结构升级完成！
+2025-04-15 20:45:44,699 - INFO - 默认账户检查 - 用户名: bc, 数据: (39, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', None, None)
+2025-04-15 20:45:44,703 - INFO - 数据库初始化成功

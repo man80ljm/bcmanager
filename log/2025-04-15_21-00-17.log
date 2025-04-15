@@ -1,0 +1,19 @@
+2025-04-15 21:00:17,801 - INFO - 程序启动，日志文件：log\2025-04-15_21-00-17.log
+2025-04-15 21:00:17,801 - INFO - 用户指南文件 UserGuide.txt 已存在，跳过生成
+2025-04-15 21:00:17,812 - WARNING - users 表中有 2 条记录，正在清理多余记录...
+2025-04-15 21:00:17,813 - INFO - 已清理 users 表多余记录
+2025-04-15 21:00:17,813 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 21:00:17,814 - INFO - remarks 表结构升级完成！
+2025-04-15 21:00:17,823 - INFO - 默认账户检查 - 用户名: bc, 数据: (51, 'bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin', None, None)
+2025-04-15 21:00:17,828 - INFO - 数据库初始化成功
+2025-04-15 21:00:17,955 - INFO - 加载保存的凭据 - 用户名: , 记住我: False
+2025-04-15 21:00:17,955 - INFO - 应用窗口标题: 本纯设计
+2025-04-15 21:00:17,972 - INFO - 应用窗口图标: D:/bcmanager/logo01.png
+2025-04-15 21:00:17,972 - INFO - 读取 Logo 路径: D:/bcmanager/logo.png
+2025-04-15 21:00:17,984 - INFO - 应用新 Logo: D:/bcmanager/logo.png
+2025-04-15 21:00:30,481 - INFO - 验证安全答案 - 用户输入答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de, 数据库存储答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de
+2025-04-15 21:00:37,998 - ERROR - 密码重置失败: UNIQUE constraint failed: users.username
+2025-04-15 21:00:40,026 - INFO - 验证安全答案 - 用户输入答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de, 数据库存储答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de
+2025-04-15 21:00:40,957 - ERROR - 密码重置失败: UNIQUE constraint failed: users.username
+2025-04-15 21:00:41,874 - INFO - 验证安全答案 - 用户输入答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de, 数据库存储答案哈希: 373bb7ad713084c2eb02759c4bd5c6fd08a9a62ff5f61bba02a2153ba6fbb8de
+2025-04-15 21:00:42,638 - ERROR - 密码重置失败: UNIQUE constraint failed: users.username

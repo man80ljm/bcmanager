@@ -1,15 +1,12 @@
-
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    security_question TEXT,           -- 安全问题
+    security_answer TEXT             -- 安全答案（哈希值）
 );
-
--- 插入一个默认管理员用户（使用哈希密码）
-INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin');
-
 
 -- 创建年份表
 CREATE TABLE IF NOT EXISTS years (

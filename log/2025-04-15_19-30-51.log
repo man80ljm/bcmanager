@@ -1,0 +1,18 @@
+2025-04-15 19:30:51,184 - INFO - 程序启动，日志文件：log\2025-04-15_19-30-51.log
+2025-04-15 19:30:51,184 - INFO - 用户指南文件 UserGuide.txt 已存在，跳过生成
+2025-04-15 19:30:51,194 - INFO - remarks 表缺少 transaction_id 的 UNIQUE 约束，正在升级表结构...
+2025-04-15 19:30:51,196 - INFO - remarks 表结构升级完成！
+2025-04-15 19:30:51,201 - ERROR - 数据库初始化失败: near "security_question": syntax error
+Traceback (most recent call last):
+  File "d:\bcmanager\database\db_manager.py", line 291, in init_database
+    cursor.executescript(schema)
+sqlite3.OperationalError: near "security_question": syntax error
+
+2025-04-15 19:30:51,201 - ERROR - 数据库初始化失败: near "security_question": syntax error
+Traceback (most recent call last):
+  File "d:\bcmanager\database\db_manager.py", line 119, in __init__
+    self.init_database()
+  File "d:\bcmanager\database\db_manager.py", line 291, in init_database
+    cursor.executescript(schema)
+sqlite3.OperationalError: near "security_question": syntax error
+
