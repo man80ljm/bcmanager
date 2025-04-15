@@ -1,5 +1,5 @@
 
-使用：pyrcc5 resource.qrc -o resource.py
+使用：pyrcc5 resources.qrc -o resources.py
 编译qrc文件
 
 打包命令：
