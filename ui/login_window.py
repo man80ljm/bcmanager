@@ -1,6 +1,6 @@
 import sys
 import resources
-import hashlib
+from hashlib import sha256 as hashlib_sha256  # 直接导入 sha256
 from PyQt5.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, 
                              QLabel, QLineEdit, QPushButton, QSpacerItem, 
                              QSizePolicy, QMessageBox, QCheckBox, QDialog, 
@@ -149,7 +149,7 @@ class SettingsDialog(QDialog):
                     if not (old_username and old_password):
                         QMessageBox.warning(self, "错误", "请填写原用户名和原密码！")
                         return
-                    hashed_old_password = hashlib.sha256(old_password.encode()).hexdigest()
+                    hashed_old_password = hashlib_sha256(old_password.encode()).hexdigest()
                     success, _ = self.db.validate_user(old_username, hashed_old_password)
                     if not success:
                         QMessageBox.warning(self, "错误", "原用户名或密码错误，请重试！")
@@ -157,15 +157,15 @@ class SettingsDialog(QDialog):
 
                 # 更新或插入新用户
                 try:
-                    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+                    hashed_password = hashlib_sha256(password.encode()).hexdigest()
                     if user_count == 0:
                         cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, 'admin')",
                                     (username, hashed_password))
-                        logging.info(f"插入新用户: {username}, 哈希密码: {hashed_password}")
+                        logging.info(f"插入新用户: {username}")
                     else:
                         cursor.execute("UPDATE users SET username = ?, password = ? WHERE id = 1",
                                     (username, hashed_password))
-                        logging.info(f"更新用户记录，影响行数: {cursor.rowcount}, 新用户名: {username}, 哈希密码: {hashed_password}")
+                        logging.info(f"更新用户记录，影响行数: {cursor.rowcount}, 新用户名: {username}")
                     conn.commit()
                     QMessageBox.information(self, "成功", "账号密码已更新")
                 except Exception as e:
@@ -312,6 +312,8 @@ class LoginWindow(QWidget):
         password = self.settings.value("password", "")
         remember = self.settings.value("remember", False, type=bool)
 
+        logging.info(f"加载保存的凭据 - 用户名: {username},  记住我: {remember}")
+        
         if username and remember:
             self.username_input.setText(username)
             self.password_input.setText(password)
@@ -325,10 +327,9 @@ class LoginWindow(QWidget):
         username = self.username_input.text()
         password = self.password_input.text()
         remember = self.remember_check.isChecked()
-
         # 使用哈希密码验证
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        logging.info(f"登录尝试 - 用户名: {username}, 哈希密码: {hashed_password}")
+        hashed_password = hashlib_sha256(password.encode()).hexdigest()
+        logging.info(f"登录尝试 - 用户名: {username}")
         success, user = self.db.validate_user(username, hashed_password)
         logging.info(f"验证结果: {success}, 用户数据: {user}")
 

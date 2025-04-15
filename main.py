@@ -17,35 +17,96 @@ def setup_logging():
             print(f"无法创建日志目录 {log_dir}: {e}")
             sys.exit(1)
 
-    # 生成时间戳命名的日志文件
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{timestamp}.log")
-
-    # 清空现有 handlers（防止追加）
     logging.getLogger().handlers.clear()
-
-    # 配置 RotatingFileHandler
     handler = RotatingFileHandler(
         log_file,
-        maxBytes=10*1024*1024,  # 10 MB 每文件
-        backupCount=10  # 保留 10 个日志文件
+        maxBytes=10*1024*1024,
+        backupCount=10
     )
     handler.setFormatter(logging.Formatter(
         '%(asctime)s - %(levelname)s - %(message)s'
     ))
-
-    # 配置日志
     logging.basicConfig(
         level=logging.INFO,
         handlers=[
-            logging.StreamHandler(),  # 控制台输出
-            handler  # 文件输出
+            logging.StreamHandler(),
+            handler
         ]
     )
     logging.info(f"程序启动，日志文件：{log_file}")
 
+def generate_user_guide():
+    guide_file = "UserGuide.txt"
+    if os.path.exists(guide_file):
+        logging.info(f"用户指南文件 {guide_file} 已存在，跳过生成")
+        return
+
+    user_guide_content = """本纯设计 项目管理软件 用户指南
+=====================================
+
+欢迎使用本纯设计项目管理软件！本软件旨在帮助您管理项目收支、跟踪年度和月度数据，并提供简单的用户设置功能。以下是基本用法说明：
+
+1. 首次登录
+----------------
+- 默认管理员账号：
+  用户名：bc
+  密码：5900145
+- 首次运行时，系统会提示您设置新的管理员账号和密码。
+- 如果忘记密码，可通过设置界面重置（需提供原用户名和密码）。
+
+2. 登录界面
+----------------
+- 输入用户名和密码，点击“登录”按钮。
+- 勾选“记住我”可保存登录信息，下次自动填充。
+- 点击右下角设置图标（齿轮），可进入设置界面：
+  - 更换 Logo：选择自定义 Logo 图片。
+  - 更换窗口图标与标题：设置软件窗口的图标和标题。
+  - 更换账号密码：更新管理员账号信息。
+
+3. 主功能
+----------------
+- 年份管理：在主界面可添加、查看年度数据。
+- 项目管理：为每个年份添加项目，指定月份。
+- 收支记录：
+  - 添加收入或支出记录，指定项目、金额、支付方式、阶段等。
+  - 支持查看月度收支汇总和详细记录。
+- 状态管理：标记收支记录为“未结项”或“已结项”。
+
+4. 数据存储
+----------------
+- 所有数据存储在本地 SQLite 数据库（project_accounting.db）。
+- 建议定期备份数据库文件，防止数据丢失。
+
+5. 日志查看
+----------------
+- 程序运行日志保存在 `log` 目录下，文件名包含时间戳。
+- 日志记录了程序运行的关键信息，便于排查问题。
+
+6. 注意事项
+----------------
+- 请勿直接修改数据库文件，可能导致数据损坏。
+- 确保程序有写入权限，以生成日志和数据库文件。
+- 如遇问题，可删除 `project_accounting.db` 重置数据库，但会丢失所有数据。
+
+如需进一步帮助，请联系开发者或查阅源代码。
+
+版本：1.0
+更新日期：2025-04-15
+=====================================
+"""
+    try:
+        with open(guide_file, "w", encoding="utf-8") as f:
+            f.write(user_guide_content)
+        logging.info(f"成功生成用户指南文件：{guide_file}")
+    except Exception as e:
+        logging.error(f"生成用户指南文件失败：{str(e)}")
+        print(f"无法生成用户指南文件：{e}")
+
 if __name__ == '__main__':
     setup_logging()
+    generate_user_guide()  # 调用生成用户指南的函数
     app = QApplication(sys.argv)
     window = LoginWindow()
     window.show()

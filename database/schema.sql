@@ -1,13 +1,3 @@
--- 创建用户表
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 用户ID，自增主键
-    username TEXT NOT NULL UNIQUE,        -- 用户名，唯一且不为空
-    password TEXT NOT NULL,               -- 密码，不为空
-    role TEXT DEFAULT 'user'              -- 权限级别，默认值为'user'
-);
-
--- 插入一个默认管理员用户（测试用）
-INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5900145', 'admin');
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
@@ -16,6 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     role TEXT DEFAULT 'user'
 );
+
+-- 插入一个默认管理员用户（使用哈希密码）
+INSERT OR IGNORE INTO users (username, password, role) VALUES ('bc', '5dd2b2cbf23d7c2815e7100bcbef2325c1af832ae703b834e8508cbfc595a790', 'admin');
+
 
 -- 创建年份表
 CREATE TABLE IF NOT EXISTS years (
